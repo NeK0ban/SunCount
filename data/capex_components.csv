@@ -1,0 +1,18 @@
+﻿item,applies_to_kw,unit,price_rub,model,seller,city,source_url,accessed,note
+panel,all,rub_per_W,23.66,JINKO 590W TOPCon BDV (13 960 ₽),Экопроект-Энерго,Краснодар,https://ekoproekt-energo.ru/mono-panels,2026-10-15,
+panel,all,rub_per_W,21.49,LUXEN LNVU-585ND TOPCon bifacial (12 570 ₽),Экопроект-Энерго,Краснодар,https://ekoproekt-energo.ru/mono-panels,2026-10-15,
+panel,all,rub_per_W,21.29,RESUN 590W TOPCon (12 560 ₽),Экопроект-Энерго,Краснодар,https://ekoproekt-energo.ru/mono-panels,2026-10-15,
+panel,all,rub_per_W,22.72,Sunpro DG590W-N144M10 TOPCon (13 404 ₽),Solarbreeze,Москва,https://solarbreeze.ru/catalog/monokristallicheskie/,2026-10-15,
+inverter,3,rub,52500,Sofar 3KTLM-G2 (1 фаза),БайкалТесла,—,https://baikaltesla.com/product-category/shop/inverter/grid-tie/,2026-10-15,
+inverter,5,rub,54405,SOFAR 5KTLM-G2 Wi-Fi (1 фаза),Термодар,Краснодар,https://krasnodar.termodar.ru/solnechnye-paneli/invertory/setevye-invertory/setevoy-invertor-sofar-5ktlm-g2-wi-fi/,2026-10-15,
+inverter,5,rub,44000,Deye SUN-5K-G (1 фаза),Сварог (sv-synergy),Краснодар,https://sv-synergy.ru/magazin/folder/setevoj-solnechnyj-invertor-deye,2026-10-15,
+inverter,10,rub,105000,Deye SUN-10K-G03 (3 фазы),Solarhome,Москва,https://shop.solarhome.ru/deye-sun-10k-g03-setevoi-invertor-solnechnyi.html,2026-10-15,
+inverter,10,rub,80497,Deye SUN-10K-G06P3-EU-BM2-P1 (3 фазы),Bobrov Solar,Москва,https://bobrovsolar.ru/catalog/invertory/invertor-deye-sun-10k-g06p3-eu-bm2-p1/,2026-10-15,
+inverter,10,rub,95000,Deye SUN-10K-G06P3 (3 фазы),БайкалТесла,—,https://baikaltesla.com/product/deye-sun-10k-g03/,2026-10-15,
+inverter,10,rub,108889,Deye SUN-10K-G06P3 (3 фазы),Реалсолар,—,https://realsolar.ru/invertory/deye/deye-sun-10k-g05/,2026-10-15,с НДС 22 %
+mounting,all,rub_per_panel,3186,набор на 4 панели 100–580 Вт параллельно кровле (12 745 ₽),e-solarpower,—,https://e-solarpower.ru/solar/montazh-sb/nabory-dlya-ustanovki-na-kryshu/,2026-10-15,для скатной крыши (монтаж параллельно скату)
+dc_cable,all,rub_per_m,123,PV1-F 1×4 мм² (бухта 50 м 6 150 ₽),НСК-Электро,—,https://nsk-electro.ru/pv-1f-1x4,2026-10-15,
+mc4,all,rub_per_pair,150,MC4 30A,Reenergo,—,https://reenergo.ru/shop/connector-mc4-30a/,2026-10-15,
+dc_spd,all,rub,3120,УЗИП SUP2H-PV 40kA,Реалсолар,—,https://realsolar.ru/zachita/uzip/,2026-10-15,
+dc_fuse,all,rub,950,Solar fuse SPF-12A 1000 В,Реалсолар,—,https://realsolar.ru/zachita/,2026-10-15,на каждую цепочку (+ и −)
+labour,all,rub_per_kW,12000,монтаж и пусконаладка,пример расчёта 5 кВт (60 000 ₽ работ),—,https://kinozadrot13.ru/raschet-stoimosti-montazha-solnechnyh-batarey-i-alternativnyh-istochnikov-energii-polnoe-rukovodstvo/,2026-10-15,ДОПУЩЕНИЕ в пределах ориентиров 10–15 % (energy-dk) и 10–30 % (eco50) стоимости оборудования

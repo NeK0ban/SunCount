@@ -1,0 +1,10 @@
+﻿offer_id,company,city,url,date_collected,pv_kw,panel_model,panel_count,inverter_model,inverter_type,price_equipment_rub,price_install_rub,price_total_rub,includes_meter,includes_grid_connection,warranty_years,note
+eko_kstar_3,Экопроект-Энерго,Краснодар,https://ekoproekt-energo.ru/set-solar-kits,2026-10-13,3,,,KSTAR,on-grid,207660,,,no,no,,"Каталог, комплект оборудования без монтажа, под заказ"
+eko_sofar_3_3,Экопроект-Энерго,Краснодар,https://ekoproekt-energo.ru/set-solar-kits,2026-10-13,3.3,,,SOFAR,on-grid,205870,,,no,no,,"Каталог, комплект без монтажа, под заказ"
+eko_huawei_3,Экопроект-Энерго,Краснодар,https://ekoproekt-energo.ru/set-solar-kits,2026-10-13,3,,,Huawei,on-grid,240080,,,no,no,,"Каталог, комплект без монтажа, под заказ"
+eko_huawei_5,Экопроект-Энерго,Краснодар,https://ekoproekt-energo.ru/set-soln-ele-1500,2026-10-13,5,,,Huawei,on-grid,329320,,,no,no,,"Каталог; продавец пишет, что расходные комплектующие и монтаж не учтены"
+svs_sofar_5,Сварог (sv-synergy),Краснодар,https://sv-synergy.ru/magazin/product/setevaya-solnechnaya-elektrostantsiya-5-kvt-sofar,2026-10-13,5,,,SOFAR,on-grid,224000,,,no,no,,"Каталог, комплект без монтажа; счётчик CHINT DDSU666 не входит; на сайте также цена 249000"
+alt_deye_5,Altecology,—,https://www.altecology.ru/catalog/setevaya_solnechnaya_elektrostantsiya_5_kvt/,2026-10-13,5,460 Вт,12,DEYE SUN-5K-G,on-grid,190000,,,no,no,5,"Каталог, комплект без монтажа; продавец не краснодарский"
+eko_kstar_6,Экопроект-Энерго,Краснодар,https://ekoproekt-energo.ru/set-solar-kits,2026-10-13,6,,,KSTAR,on-grid,342240,,,no,no,,"Каталог, комплект без монтажа, под заказ"
+eko_sofar_7_5,Экопроект-Энерго,Краснодар,https://ekoproekt-energo.ru/set-solar-kits,2026-10-13,7.5,,,SOFAR,on-grid,447200,,,no,no,,"Каталог, комплект без монтажа, под заказ"
+eko_huawei_15,Экопроект-Энерго,Краснодар,https://ekoproekt-energo.ru/set-solar-kits,2026-10-13,15,,,Huawei,on-grid,898330,,,no,no,,"Каталог, комплект без монтажа, под заказ"

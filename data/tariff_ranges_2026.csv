@@ -1,0 +1,7 @@
+﻿category,dwelling,season,range_I_max_kwh_month,range_II_max_kwh_month,note,source_url,accessed
+base,house,all_year,1100,1700,"Раздел 1, жилые дома",https://kuban.tns-e.ru/calculations/tariffs/tariff-table/,2026-10-13
+reduced_gas_rural,house,all_year,1100,1700,"Раздел 8, село, газовые плиты, жилые дома",https://kuban.tns-e.ru/calculations/tariffs/tariff-table/,2026-10-13
+reduced_stove,house,all_year,1200,1850,"Разделы 3 и 6, электроплиты без электроотопления, жилые дома",https://kuban.tns-e.ru/calculations/tariffs/tariff-table/,2026-10-13
+reduced_heating,house,heating_oct_apr,3900,6000,"Разделы 2,4,5,7, электроотопление, отопительный период 01.10–30.04",https://kuban.tns-e.ru/calculations/tariffs/tariff-table/,2026-10-13
+reduced_heating_stove,house,non_heating_may_sep,1200,1850,"Разделы 2 и 5, плиты + электроотопление, неотопительный период",https://kuban.tns-e.ru/calculations/tariffs/tariff-table/,2026-10-13
+reduced_heating_nostove,house,non_heating_may_sep,1100,1700,"Разделы 4 и 7, электроотопление без плит, неотопительный период",https://kuban.tns-e.ru/calculations/tariffs/tariff-table/,2026-10-13
