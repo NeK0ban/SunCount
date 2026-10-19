@@ -426,7 +426,7 @@ for plan in PLANS:
     res_rows.append([plan.name, f"{ru(d.simple_payback.min(), 1)}–{ru(d.simple_payback.max(), 1)}",
                      f"{ru(d.simple_payback_low.min(), 1)}–{ru(d.simple_payback_high.max(), 1)}",
                      f"{ru(d.disc_payback.min(), 1)}–{ru(d.disc_payback.max(), 1)}",
-                     f"{d.export_share_pct.min():.0f}–{d.export_share_pct.max():.0f}"])
+                     f"{int(d.export_share_pct.min() + 0.5)}–{int(d.export_share_pct.max() + 0.5)}"])
 story += [table(res_rows, [0.28, 0.16, 0.2, 0.18, 0.18]), para("Таблица: СЭС 5 кВт, диапазон по долям самопотребления 20–50 %.", "cap"),
           fig(f_cash, "Рис. 9. Накопленный дисконтированный денежный поток СЭС 5 кВт; точка пересечения с нулём — "
                       "дисконтированный срок окупаемости."),
