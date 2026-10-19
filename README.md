@@ -4,6 +4,7 @@
 
 Мастер-ТЗ команды (роли, задачи, сроки): [docs/MASTER_TZ.md](docs/MASTER_TZ.md)
 План и статусы задач: [PLAN.md](PLAN.md)
+Как отправлять свою работу (форк и pull request): [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## Структура
 - `docs/` — тексты для отчёта (нормативка, методика)
