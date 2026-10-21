@@ -19,6 +19,8 @@ OUT = ROOT / "data" / "buyback_prices.csv"
 PAGE = ("https://kuban.tns-e.ru/disclosure/raskrytie-informatsii-subektom-rynka-elektricheskoy-energii-moshchnosti/"
         "market-report-gp/informatsiya-ob-obemakh-i-srednevzveshennoy-tsene-pokupki-na-roznichnom-rynke-elektricheskoy-energii/")
 ACCESSED = "2026-10-13"
+# файлы, скачанные позже первой выгрузки
+ACCESSED_BY_FILE = {"2026-09.xlsx": "2026-10-21"}
 
 
 def parse_sheet(ws):
@@ -57,6 +59,7 @@ for year, f in sorted(latest.items()):
         rec = parse_sheet(ws)
         if "price_rub_kwh" in rec:
             rec["source_file"] = f"data/raw/tns_microgen/{f.name}"
+            rec["accessed"] = ACCESSED_BY_FILE.get(f.name, ACCESSED)
             rows.append(rec)
 
 cols = ["month", "price_rub_kwh", "volume_total_kwh", "volume_flat_kwh", "volume_zones_kwh",
@@ -67,6 +70,6 @@ with OUT.open("w", newline="", encoding="utf-8-sig") as fh:
     for r in sorted(rows, key=lambda r: r["month"]):
         w.writerow([round(r[c], 4) if isinstance(r.get(c), float) else r.get(c, "") for c in cols]
                    + ["ПАО «ТНС энерго Кубань»", "п. 52в Стандартов раскрытия информации (ПП РФ от 21.01.2004 № 24)",
-                      PAGE, ACCESSED])
+                      PAGE, r["accessed"]])
         print(r["month"], round(r["price_rub_kwh"], 3), round(r["volume_total_kwh"]))
 print("written", OUT, len(rows), "months")

@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from src.econ.exchange import annual_from_monthly, make_stub_monthly, write_csv  # noqa: E402
 from src.econ.inputs import TariffPlan, buyback_monthly, zone_prices  # noqa: E402
-from src.econ.model import (Scenario, Tariff, annual_effect, annual_effect_monthly,  # noqa: E402
+from src.econ.model import (Scenario, Tariff, annual_effect, annual_effect_monthly, annual_effect_monthly_net,  # noqa: E402
                             cash_flows, discounted_payback, npv, simple_payback)
 
 CITY = "krasnodar"
@@ -50,6 +50,8 @@ for kw in PV_SIZES:
         for plan in PLANS:
             e = annual_effect_monthly(months, plan)
             flows = cash_flows(e, CAPEX[kw], sc)
+            # вариант с помесячным зачётом выдачи против покупки (ОП № 442, п. 63(1)) — для сравнения
+            en = annual_effect_monthly_net(months, plan)
             rows.append({
                 "pv_kw": kw, "capex_rub": CAPEX[kw], "self_share_target": share,
                 "self_share": round(year.self_share, 1), "tariff": plan.name,
@@ -60,6 +62,9 @@ for kw in PV_SIZES:
                 "simple_payback_high": round(simple_payback(CAPEX_HIGH[kw], e.effect_rub), 1),
                 "disc_payback": round(discounted_payback(CAPEX[kw], flows, sc), 1),
                 "npv_rub": round(npv(CAPEX[kw], flows, sc)),
+                "effect_net_rub": round(en.effect_rub), "export_share_net_pct": round(en.export_share, 1),
+                "simple_payback_net": round(simple_payback(CAPEX[kw], en.effect_rub), 1),
+                "disc_payback_net": round(discounted_payback(CAPEX[kw], cash_flows(en, CAPEX[kw], sc), sc), 1),
             })
 
 out = ROOT / "results"
@@ -78,6 +83,8 @@ pt = lambda col: df.pivot_table(index=["pv_kw", "self_share_target"], columns="t
 print("\n== Простой срок окупаемости, лет\n" + pt("simple_payback").to_string())
 print("\n== Дисконтированный срок окупаемости, лет (inf — не окупается за 25 лет)\n" + pt("disc_payback").to_string())
 print("\n== Доля дохода от излишков, % (гипотеза 2: ≤ 20 %)\n" + pt("export_share_pct").to_string())
+print("\n== С помесячным зачётом (п. 63(1)): простой срок, лет\n" + pt("simple_payback_net").to_string())
+print("\n== С помесячным зачётом: доля дохода от проданного остатка, %\n" + pt("export_share_net_pct").to_string())
 
 # --- проверка эффекта диапазонов: дом с большим потреблением (зима тяжелее), 10 кВт, город
 heavy_shape = [1.6, 1.5, 1.2, 0.9, 0.8, 1.0, 1.2, 1.2, 0.9, 0.8, 1.2, 1.6]

@@ -28,10 +28,22 @@ PANEL_W = 590                 # типичный модуль TOPCon 585–590 �
 
 # --- ДОПУЩЕНИЯ (нет опубликованных цен; проверяются в чувствительности через диапазон Б–В)
 AC_PROTECTION_RUB = {1: 6000, 3: 10000}   # AC-автомат, AC УЗИП, бокс; 1-фазная / 3-фазная схема
-PAPERWORK_RUB = 5000                      # оформление микрогенерации, договор с ТНС (плата сетевой
-                                          # организации при мощности СЭС ≤ мощности дома — минимальна)
 DELIVERY_RUB = 5000
 METER_RUB = 0                             # прибор учёта ставит сетевая организация (обязанность с 01.07.2020)
+
+# --- плата за техприсоединение микрогенерации физлица (приказ ДГРТ Краснодарского края от 24.12.2025
+#     № 19/2025-э, п. 1; data/capex_components.csv, item grid_connection*): минимум из
+#     (а) стоимости по стандартизированным ставкам и (б) льготной ставки 11 470 ₽ за кВт с НДС.
+#     Дом уже подключён, строить сеть не нужно → (а) = С1 (ТУ + проверка их выполнения) с НДС 22 %.
+#     Ставка С8 (прибор учёта) в открытой части приказа не найдена — если счётчик меняют за счёт
+#     заявителя, плата выше, но не больше (б). Верхняя граница для чувствительности — (б).
+VAT = 0.22
+GRID_C1_RUB = round(17363.37 * (1 + VAT))   # 21 183 ₽
+GRID_LGOT_RUB_PER_KW = 11470
+
+
+def grid_connection(kw):
+    return min(GRID_C1_RUB, GRID_LGOT_RUB_PER_KW * kw)
 CABLE_M_PER_STRING = 40                   # 2 полюса × ~20 м от крыши до инвертора
 
 comp = pd.read_csv(DATA / "capex_components.csv", encoding="utf-8-sig")
@@ -54,7 +66,7 @@ def balance_of_system(kw):
     return {
         "Защита DC/AC": dc_protection + AC_PROTECTION_RUB[phases],
         "Монтаж и пусконаладка": med("labour") * kw,
-        "Оформление, доставка": PAPERWORK_RUB + DELIVERY_RUB + METER_RUB,
+        "Подключение, доставка": grid_connection(kw) + DELIVERY_RUB + METER_RUB,
     }
 
 
@@ -90,6 +102,7 @@ for kw in SIZES:
         "capex_low_rub": round(bottom_up, -3), "capex_base_rub": round(base, -3), "capex_high_rub": round(published, -3),
         "inverter_rub": round(med("inverter", kw), -2),
         "base_rub_per_kw": round(base / kw, -2),
+        "grid_connection_rub": grid_connection(kw), "grid_connection_max_rub": GRID_LGOT_RUB_PER_KW * kw,
         "method_low": "В: сумма компонентов по рознице", "method_base": "комплект Краснодара + монтаж + BOS",
         "method_high": "Б: опубликованные цены «под ключ»" + ("" if len(t) else " (экстраполяция от 5 кВт)"),
     })

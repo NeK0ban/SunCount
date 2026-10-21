@@ -7,7 +7,9 @@
 Два способа посчитать годовой эффект:
   * annual_effect()         — формула ТЗ: самопотребление × тариф + излишки × цена выкупа (годовые данные);
   * annual_effect_monthly() — точнее: счёт за электроэнергию без СЭС минус счёт с СЭС по месяцам
-                              (учитывает диапазоны тарифа) + излишки × цена выкупа месяца (сезонность).
+                              (учитывает диапазоны тарифа) + излишки × цена выкупа месяца (сезонность);
+  * annual_effect_monthly_net() — как annual_effect_monthly(), но с помесячным зачётом выдачи в сеть
+                              против покупки из сети для граждан (ОП № 442, п. 63(1)) — вариант для сравнения.
 """
 from __future__ import annotations
 
@@ -62,6 +64,31 @@ def annual_effect_monthly(months: list[MonthlyMetrics], plan: TariffPlan) -> Eco
         with_pv = monthly_bill(plan, r.month, r.import_day_kwh, r.import_night_kwh)
         saving += without - with_pv
         export += r.export_kwh * bb[r.month]
+    return _econ(saving, export)
+
+
+def annual_effect_monthly_net(months: list[MonthlyMetrics], plan: TariffPlan) -> Economics:
+    """Эффект с помесячным зачётом по ОП № 442, п. 63(1) (ПП РФ № 442, ред. ПП № 299 от 02.03.2021).
+
+    Гражданин на одноставочном тарифе оплачивает за месяц max(покупка − выдача, 0), а ГП покупает
+    у него max(выдача − покупка, 0). На тарифе день/ночь зачёт идёт отдельно по зонам суток; СЭС отдаёт
+    энергию только днём, поэтому выдача зачитывается против дневной покупки.
+    self_rub — экономия на счёте (самопотребление + зачёт), export_rub — доход от проданного остатка.
+    """
+    bb = buyback_monthly(plan.owner_category)
+    saving = export = 0.0
+    for r in months:
+        without = monthly_bill(plan, r.month, r.import_day_kwh + r.self_kwh, r.import_night_kwh)
+        day = max(r.import_day_kwh - r.export_kwh, 0.0)
+        if plan.owner_category == "flat":
+            # одноставочный: зачёт против всей покупки за месяц (сначала дневной — на цену не влияет)
+            night = max(r.import_kwh - r.export_kwh, 0.0) - day
+            sold = max(r.export_kwh - r.import_kwh, 0.0)
+        else:
+            night = r.import_night_kwh
+            sold = max(r.export_kwh - r.import_day_kwh, 0.0)
+        saving += without - monthly_bill(plan, r.month, day, night)
+        export += sold * bb[r.month]
     return _econ(saving, export)
 
 
