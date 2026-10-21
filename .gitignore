@@ -14,3 +14,12 @@ desktop.ini
 
 # Временные файлы Excel
 ~$*
+
+# Тесты и калькулятор
+.pytest_cache/
+.streamlit/secrets.toml
+
+# Логи и служебные файлы
+*.log
+.DS_Store
+.ipynb_checkpoints/
