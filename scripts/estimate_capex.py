@@ -88,20 +88,23 @@ for kw in SIZES:
     k = kits.assign(rub_per_kw=kits.price_equipment_rub / kits.pv_kw)
     kit_per_kw = float(k[k.pv_kw <= 5].rub_per_kw.median() if kw <= 5 else k[k.pv_kw >= 6].rub_per_kw.median())
     base = kit_per_kw * kw + sum(balance_of_system(kw).values())
-    # --- способ Б: опубликованные цены «под ключ» (середина диапазона); для 10 кВт данных нет →
-    #     переносим цену за кВт от 5 кВт с тем же эффектом масштаба, что и в базе
+    # --- способ Б: опубликованные цены «под ключ» (середина диапазона) + плата за подключение
+    #     (в опубликованные цены она не входит, data/turnkey_prices.csv, колонка includes).
+    #     Для 10 кВт данных нет → цену за кВт от 5 кВт переносим с эффектом масштаба комплектов
+    #     (отношение цены комплекта за кВт 6–15 кВт к 3–5 кВт), без постоянных статей.
     t = turn[turn.pv_kw == kw]
     if len(t):
-        published = float(((t.price_low_rub + t.price_high_rub) / 2).median())
+        published = float(((t.price_low_rub + t.price_high_rub) / 2).median()) + grid_connection(kw)
     else:
         t5 = turn[turn.pv_kw == 5]
         per_kw5 = float(((t5.price_low_rub + t5.price_high_rub) / 2).median()) / 5
-        published = per_kw5 * kw * (base / kw) / (rows[1]["capex_base_rub"] / 5)
+        scale = float(k[k.pv_kw >= 6].rub_per_kw.median()) / float(k[k.pv_kw <= 5].rub_per_kw.median())
+        published = per_kw5 * kw * scale + grid_connection(kw)
     rows.append({
         "pv_kw": kw, "panels": panels,
         "capex_low_rub": round(bottom_up, -3), "capex_base_rub": round(base, -3), "capex_high_rub": round(published, -3),
         "inverter_rub": round(med("inverter", kw), -2),
-        "base_rub_per_kw": round(base / kw, -2),
+        "base_rub_per_kw": round(round(base, -3) / kw, -2),
         "grid_connection_rub": grid_connection(kw), "grid_connection_max_rub": GRID_LGOT_RUB_PER_KW * kw,
         "method_low": "В: сумма компонентов по рознице", "method_base": "комплект Краснодара + монтаж + BOS",
         "method_high": "Б: опубликованные цены «под ключ»" + ("" if len(t) else " (экстраполяция от 5 кВт)"),

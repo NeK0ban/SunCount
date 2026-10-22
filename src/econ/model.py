@@ -174,15 +174,21 @@ def cash_flows(base: Economics, capex: float, sc: Scenario | None = None) -> lis
 
 
 def discounted_payback(capex: float, flows: list[float], sc: Scenario | None = None) -> float:
-    """Дисконтированный срок окупаемости, лет (с интерполяцией внутри года); inf — не окупается."""
+    """Дисконтированный срок окупаемости, лет (с интерполяцией внутри года); inf — не окупается.
+
+    Берётся последний переход накопленного потока через ноль: замена инвертора может снова
+    увести его в минус, и тогда первое пересечение занижало бы срок.
+    """
     sc = sc or Scenario()
-    acc = -capex
+    acc, result = -capex, float("inf")
     for t, (cf, df) in enumerate(zip(flows, discount_factors(sc)), start=1):
-        dcf = cf * df
-        if acc + dcf >= 0 and dcf > 0:
-            return t - 1 + (-acc) / dcf
-        acc += dcf
-    return float("inf")
+        new = acc + cf * df
+        if acc < 0 <= new:
+            result = t - 1 + (-acc) / (new - acc)
+        elif new < 0:
+            result = float("inf")
+        acc = new
+    return result
 
 
 def npv(capex: float, flows: list[float], sc: Scenario | None = None) -> float:
