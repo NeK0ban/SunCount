@@ -51,13 +51,27 @@ def annual_effect(m: EnergyMetrics, tariff: Tariff, buyback: float) -> Economics
     return _econ(m.self_kwh * tariff.day, m.export_kwh * buyback)
 
 
-def annual_effect_monthly(months: list[MonthlyMetrics], plan: TariffPlan) -> Economics:
+BuybackArg = dict[int, float] | float | None
+
+
+def _buyback(plan: TariffPlan, buyback: BuybackArg) -> dict[int, float]:
+    """Цена выкупа по месяцам: None — по тарифу владельца и месяцу (inputs.buyback_monthly),
+    число — одна цена на все месяцы, словарь {месяц: цена} — как задан."""
+    if buyback is None:
+        return buyback_monthly(plan.owner_category)
+    if isinstance(buyback, dict):
+        return buyback
+    return {m: float(buyback) for m in range(1, 13)}
+
+
+def annual_effect_monthly(months: list[MonthlyMetrics], plan: TariffPlan, buyback: BuybackArg = None) -> Economics:
     """Эффект по месяцам: (счёт без СЭС − счёт с СЭС) + Σ излишки_м × цена выкупа_м.
 
     Без СЭС дом покупал бы днём import_day + self, ночью — import_night.
-    Цена выкупа зависит от тарифа владельца (1-я или 2-я ценовая категория) и месяца.
+    Цена выкупа зависит от тарифа владельца (1-я или 2-я ценовая категория) и месяца;
+    buyback — своя цена (число на все месяцы или {месяц: цена}), по умолчанию — расчётная.
     """
-    bb = buyback_monthly(plan.owner_category)
+    bb = _buyback(plan, buyback)
     saving = export = 0.0
     for r in months:
         without = monthly_bill(plan, r.month, r.import_day_kwh + r.self_kwh, r.import_night_kwh)
@@ -67,15 +81,16 @@ def annual_effect_monthly(months: list[MonthlyMetrics], plan: TariffPlan) -> Eco
     return _econ(saving, export)
 
 
-def annual_effect_monthly_net(months: list[MonthlyMetrics], plan: TariffPlan) -> Economics:
+def annual_effect_monthly_net(months: list[MonthlyMetrics], plan: TariffPlan, buyback: BuybackArg = None) -> Economics:
     """Эффект с помесячным зачётом по ОП № 442, п. 63(1) (ПП РФ № 442, ред. ПП № 299 от 02.03.2021).
 
     Гражданин на одноставочном тарифе оплачивает за месяц max(покупка − выдача, 0), а ГП покупает
     у него max(выдача − покупка, 0). На тарифе день/ночь зачёт идёт отдельно по зонам суток; СЭС отдаёт
     энергию только днём, поэтому выдача зачитывается против дневной покупки.
     self_rub — экономия на счёте (самопотребление + зачёт), export_rub — доход от проданного остатка.
+    buyback — как в annual_effect_monthly().
     """
-    bb = buyback_monthly(plan.owner_category)
+    bb = _buyback(plan, buyback)
     saving = export = 0.0
     for r in months:
         without = monthly_bill(plan, r.month, r.import_day_kwh + r.self_kwh, r.import_night_kwh)
