@@ -57,12 +57,14 @@ def build(md_path: Path) -> Path:
         set_font(st, size, bold=True)
         st.font.color.rgb = None
         st.font.italic = False
-        st.paragraph_format.first_line_indent = Cm(1.25) if name == "Heading 2" else Cm(0)
+        st.paragraph_format.first_line_indent = Cm(0)
         st.paragraph_format.space_before, st.paragraph_format.space_after = Pt(12), Pt(6)
         st.paragraph_format.keep_with_next = True
     bullet = doc.styles["List Bullet"]
     set_font(bullet)
-    bullet.paragraph_format.first_line_indent = Cm(0)
+    bf = bullet.paragraph_format
+    bf.first_line_indent, bf.alignment = Cm(0), WD_ALIGN_PARAGRAPH.LEFT   # без растяжки пробелов в пунктах
+    bf.line_spacing, bf.space_after = 1.15, Pt(4)
 
     lines = md_path.read_text(encoding="utf-8").splitlines()
     in_header = True
@@ -90,8 +92,10 @@ def build(md_path: Path) -> Path:
                 p.paragraph_format.line_spacing = 1.0
                 p.paragraph_format.space_after = Pt(4)
                 p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-            elif re.fullmatch(r"\*\*[^*]+\*\*", line):   # строка-подзаголовок списка — не отрывать от списка
+            elif re.fullmatch(r"\*\*[^*]+\*\*", line):   # строка-подзаголовок блока — без отступа, не отрывать от блока
                 p.paragraph_format.keep_with_next = True
+                p.paragraph_format.first_line_indent = Cm(0)
+                p.paragraph_format.space_before = Pt(8)
             add_runs(p, line)
 
     out = OUT / f"SunCount_nedelya_{md_path.stem}.docx"
