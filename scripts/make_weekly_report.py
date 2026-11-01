@@ -18,7 +18,7 @@ from docx.shared import Cm, Pt
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "reports" / "weekly" / "src"
 OUT = ROOT / "reports" / "weekly"
-FONT, SIZE = "Times New Roman", 14   # как в записке команды (reports/SunCount_zapiska_problema_potrebitelya.docx)
+FONT, SIZE = "Times New Roman", 14   # как в записке команды (reports/kurs/02_problema_potrebitelya/SunCount_zapiska_problema_potrebitelya.docx)
 
 
 def set_font(style, size=SIZE, bold=None):
