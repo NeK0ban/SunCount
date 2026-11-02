@@ -18,6 +18,7 @@
 - `data/raw/` — скачанные оригиналы (не редактировать); в `tns_microgen/` — один файл на год (последний месяц года содержит все месяцы)
 - `reports/` — отчёты и презентации, оглавление — [reports/README.md](reports/README.md): в корне — результаты по ТЗ (промежуточный и итоговый отчёт), `reports/kurs/` — задания курса по лекциям, `reports/pasport/` — паспорт проекта
 - `reports/weekly/` — недельные отчёты команды в .docx (что сделано, что в работе, планы); текст правится в `reports/weekly/src/*.md`, docx собирает `python scripts/make_weekly_report.py`
+- `app/` — веб-калькулятор на Streamlit: `streamlit_app.py` (интерфейс), `calc.py` (расчёт через `src/econ/api.py`, без Streamlit), `texts.py` (тексты и форматирование)
 - `scripts/` — скрипты расчётов
 - `results/` — результаты расчётов
 
@@ -31,6 +32,8 @@ python scripts/estimate_capex.py
 python scripts/stub_payback.py
 python scripts/export_excel.py
 python scripts/make_interim_report.py   # промежуточный отчёт → reports/SunCount_interim_report.pdf
+python scripts/sensitivity.py           # анализ чувствительности → results/sensitivity.csv, results/tornado_*.png
+streamlit run app/streamlit_app.py      # калькулятор SunCount → http://localhost:8501
 ```
 
 ## Просмотр данных в Excel
