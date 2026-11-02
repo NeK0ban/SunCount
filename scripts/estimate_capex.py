@@ -1,12 +1,18 @@
-"""Оценка капзатрат СЭС «под ключ» для 3, 5, 10 кВт двумя способами + выбор базового значения (задача 2.1).
+"""Оценка капзатрат СЭС «под ключ» для 3, 5, 10 кВт (задачи 2.1, T2.4, T1.7).
 
-В (снизу):  панели + инвертор + крепёж + кабель/MC4 + защита + монтаж + оформление + доставка
-            по отдельным ценам компонентов (data/capex_components.csv) — НИЖНЯЯ граница
-            (покупка по рознице без наценки установщика).
-База:       комплект краснодарского продавца (data/equipment_offers.csv: панели+инвертор+крепёж+кабели)
-            + монтаж + защита + оформление + доставка — так работает типичный местный установщик.
-Б (сверху): опубликованные цены «под ключ» (data/turnkey_prices.csv) — ВЕРХНЯЯ граница
-            (включают наценку установщика, проект, сервис; общероссийские ориентиры).
+С 03.11.2026 база — по коммерческим предложениям установщиков Краснодара (data/kp_responses.csv):
+КП (база):   ₽ за ватт панелей сетевой станции «под ключ» у каждой компании, интерполяция по мощности
+             внутри её собственных КП, среднее по компаниям × мощность + плата за подключение.
+             Монтаж там, где КП дано без него (Экопроект-Энерго), — 20 % комплекта (компания: 15–25 %).
+КП (низ):    то же, минимум по компаниям, монтаж 15 %.
+Верх:        прежняя база (до 03.11): комплект краснодарского продавца из каталога
+             (data/equipment_offers.csv) + монтаж + защита + подключение + доставка.
+             По КП трёх компаний она оказалась выше рынка на 20–50 % (docs/kp_plan.md, «Выводы по КП»).
+Для справки (колонки capex_components_rub и capex_published_rub, в модель не идут):
+В — сумма компонентов по рознице (data/capex_components.csv);
+Б — опубликованные цены «под ключ» (data/turnkey_prices.csv, общероссийские) + плата за подключение.
+
+Конфиденциальные КП в data/kp_responses.csv не вносятся и в расчёт не входят.
 
 Результат: data/capex_estimate.csv (+ график results/capex_estimate.png).
 Запуск: python scripts/estimate_capex.py
@@ -49,6 +55,31 @@ CABLE_M_PER_STRING = 40                   # 2 полюса × ~20 м от кры
 comp = pd.read_csv(DATA / "capex_components.csv", encoding="utf-8-sig")
 kits = pd.read_csv(DATA / "equipment_offers.csv", encoding="utf-8-sig")
 turn = pd.read_csv(DATA / "turnkey_prices.csv", encoding="utf-8-sig")
+kp = pd.read_csv(DATA / "kp_responses.csv", encoding="utf-8-sig")
+
+# --- КП: монтаж, если компания дала только комплект (Экопроект-Энерго, 20.10.2026: «15–25 % от стоимости
+#     комплекта»); база — середина, низ — 15 %
+KP_INSTALL_SHARE = {"base": 0.20, "low": 0.15}
+KP_NEAREST_TOL = 0.20     # мощность вне диапазона КП компании: берём её ближайшее КП, если оно отличается ≤ 20 %
+
+
+def kp_points(install_share):
+    """{компания: [(кВт панелей, ₽/Вт без платы за подключение), …]} по сетевым КП «под ключ»."""
+    d = kp[kp.inverter_type.str.startswith("on-grid")].copy()
+    w = d.panel_model.str.extract(r"(\d{3})\s*Вт", expand=False).astype(float)
+    d["kwp"] = (w * d.panel_count / 1000).fillna(d.pv_kw)
+    d["total"] = d.price_total_rub.fillna(d.price_equipment_rub * (1 + install_share))
+    d = d.dropna(subset=["total"])
+    return {c: sorted(zip(g.kwp, g.total / (g.kwp * 1000))) for c, g in d.groupby("company")}
+
+
+def kp_rub_per_w(points, kw):
+    """₽/Вт компании для мощности kw: интерполяция внутри её КП или ближайшее КП в пределах допуска; иначе None."""
+    x, y = zip(*points)
+    if x[0] <= kw <= x[-1]:
+        return float(np.interp(kw, x, y))
+    near = min(range(len(x)), key=lambda i: abs(x[i] - kw))
+    return y[near] if abs(x[near] - kw) / kw <= KP_NEAREST_TOL else None
 
 
 def med(item, kw=None):
@@ -100,40 +131,49 @@ for kw in SIZES:
         per_kw5 = float(((t5.price_low_rub + t5.price_high_rub) / 2).median()) / 5
         scale = float(k[k.pv_kw >= 6].rub_per_kw.median()) / float(k[k.pv_kw <= 5].rub_per_kw.median())
         published = per_kw5 * kw * scale + grid_connection(kw)
+    # --- КП установщиков: среднее (база) и минимум (низ) по компаниям + плата за подключение
+    #     (её нет ни в одном КП; доставка в КП входит)
+    kp_base = [r for r in (kp_rub_per_w(p, kw) for p in kp_points(KP_INSTALL_SHARE["base"]).values()) if r]
+    kp_low = [r for r in (kp_rub_per_w(p, kw) for p in kp_points(KP_INSTALL_SHARE["low"]).values()) if r]
+    kp_capex = float(np.mean(kp_base)) * kw * 1000 + grid_connection(kw)
+    kp_capex_low = min(kp_low) * kw * 1000 + grid_connection(kw)
     rows.append({
         "pv_kw": kw, "panels": panels,
-        "capex_low_rub": round(bottom_up, -3), "capex_base_rub": round(base, -3), "capex_high_rub": round(published, -3),
+        "capex_low_rub": round(kp_capex_low, -3), "capex_base_rub": round(kp_capex, -3), "capex_high_rub": round(base, -3),
         "inverter_rub": round(med("inverter", kw), -2),
-        "base_rub_per_kw": round(round(base, -3) / kw, -2),
+        "base_rub_per_kw": round(round(kp_capex, -3) / kw, -2),
         "grid_connection_rub": grid_connection(kw), "grid_connection_max_rub": GRID_LGOT_RUB_PER_KW * kw,
-        "method_low": "В: сумма компонентов по рознице", "method_base": "комплект Краснодара + монтаж + BOS",
-        "method_high": "Б: опубликованные цены «под ключ»" + ("" if len(t) else " (экстраполяция от 5 кВт)"),
+        "kp_companies": len(kp_base),
+        "capex_components_rub": round(bottom_up, -3), "capex_published_rub": round(published, -3),
+        "method_low": "КП установщиков: минимум по компаниям, монтаж 15 %",
+        "method_base": f"КП установщиков: среднее по {len(kp_base)} компани{'и' if len(kp_base) == 1 else 'ям'} + подключение",
+        "method_high": "прежняя база: комплект Краснодара из каталога + монтаж + BOS",
     })
 
 est = pd.DataFrame(rows)
 est.to_csv(DATA / "capex_estimate.csv", index=False, encoding="utf-8-sig")
-print(est[["pv_kw", "panels", "capex_low_rub", "capex_base_rub", "capex_high_rub", "base_rub_per_kw", "inverter_rub"]].to_string(index=False))
-for kw, b in breakdown.items():
-    print(f"\nВ, {kw} кВт:", {k: round(v) for k, v in b.items()})
+print(est[["pv_kw", "capex_low_rub", "capex_base_rub", "capex_high_rub", "base_rub_per_kw", "kp_companies",
+           "inverter_rub", "capex_components_rub", "capex_published_rub"]].to_string(index=False))
+for c, pts in kp_points(KP_INSTALL_SHARE["base"]).items():
+    print(f"КП {c}:", ", ".join(f"{k:.2f} кВт — {r:.1f} ₽/Вт" for k, r in pts))
 
-# --- график: разбивка способа В + база + Б
+# --- график: КП (низ и база), прежняя база (верх); В и Б — для справки
 fig, ax = plt.subplots(figsize=(8, 3.8))
 x = np.arange(len(SIZES))
-bottom = np.zeros(len(SIZES))
-cmap = plt.get_cmap("tab20c")
-for i, part in enumerate(breakdown[SIZES[0]]):
-    vals = np.array([breakdown[kw][part] for kw in SIZES]) / 1000
-    ax.bar(x - 0.25, vals, 0.35, bottom=bottom, color=cmap(i), label=part)
-    bottom += vals
-ax.bar(x + 0.15, est.capex_base_rub / 1000, 0.2, color="#1f6fb2", label="База (комплект + монтаж)")
-ax.bar(x + 0.35, est.capex_high_rub / 1000, 0.2, color="#c0392b", alpha=0.75, label="Б: опубликовано «под ключ»")
-for i, r in est.iterrows():
-    ax.text(i + 0.15, r.capex_base_rub / 1000 + 8, f"{r.capex_base_rub / 1000:.0f}", ha="center", fontsize=8, color="#1f6fb2")
-    ax.text(i - 0.25, r.capex_low_rub / 1000 + 8, f"{r.capex_low_rub / 1000:.0f}", ha="center", fontsize=8)
-    ax.text(i + 0.35, r.capex_high_rub / 1000 + 8, f"{r.capex_high_rub / 1000:.0f}", ha="center", fontsize=8, color="#c0392b")
+bars = [("capex_low_rub", "КП: минимум (низ)", "#9ecae1"),
+        ("capex_base_rub", "КП: среднее (база)", "#1f6fb2"),
+        ("capex_high_rub", "Прежняя база (верх)", "#c0392b"),
+        ("capex_components_rub", "В: компоненты по рознице (справочно)", "#bdbdbd"),
+        ("capex_published_rub", "Б: опубликовано «под ключ» (справочно)", "#636363")]
+width = 0.16
+for j, (col, label, color) in enumerate(bars):
+    pos = x + (j - 2) * width
+    ax.bar(pos, est[col] / 1000, width, color=color, label=label)
+    for i, v in enumerate(est[col] / 1000):
+        ax.text(pos[i], v + 8, f"{v:.0f}", ha="center", fontsize=7, color=color if j < 3 else "#444444")
 ax.set_xticks(x, [f"{kw} кВт" for kw in SIZES])
 ax.set_ylabel("тыс. ₽")
-ax.set_title("Капзатраты СЭС «под ключ»: В (по компонентам), база и Б (опубликованные цены)")
+ax.set_title("Капзатраты сетевой СЭС «под ключ» с платой за подключение: база по КП установщиков")
 ax.legend(frameon=False, fontsize=7, ncol=2, loc="upper left")
 ax.spines[["top", "right"]].set_visible(False)
 fig.savefig(ROOT / "results" / "capex_estimate.png", dpi=200, bbox_inches="tight")
