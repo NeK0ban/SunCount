@@ -34,6 +34,8 @@ python scripts/estimate_capex.py
 python scripts/stub_payback.py
 python scripts/sensitivity.py           # анализ чувствительности → results/sensitivity.csv, results/tornado_*.png
 python scripts/check_team1_data.py      # проверка данных команды 1 → results/team1_*.csv
+python scripts/zones_effect.py          # тариф день/ночь против одноставочного → results/zones_effect.csv, *.png
+python scripts/heatmap_real.py          # тепловая карта на данных команды 1 → results/heatmap_real*.csv/png
 python scripts/export_excel.py          # после всех расчётов: SunCount_data.xlsx
 python scripts/make_interim_report.py   # промежуточный отчёт → reports/SunCount_interim_report.pdf
 python -m streamlit run app/streamlit_app.py   # калькулятор SunCount → http://localhost:8501
