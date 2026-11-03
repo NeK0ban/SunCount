@@ -34,14 +34,17 @@ from matplotlib.ticker import FuncFormatter
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from src.econ.exchange import make_stub_monthly          # noqa: E402
-from src.econ.inputs import TariffPlan                   # noqa: E402
+from src.econ.inputs import TariffPlan, pv_monthly_kwh_per_kw  # noqa: E402
 from src.econ.model import (Economics, Scenario, annual_effect_monthly,  # noqa: E402
                             cash_flows, discounted_payback, simple_payback)
 
 PV_KW = 5
 LOAD_KWH = 6000          # годовое потребление дома, кВт·ч (≈ 500 кВт·ч/мес)
 SELF_SHARE = 40          # базовая доля самопотребления, %
-PV_KWH_PER_KW_LO, PV_KWH_PER_KW_HI = 1240.0, 1311.5   # выработка: потери 14 % / 9 %
+# выработка: база — PVGIS (наклон 30°, потери 14 %); верх — та же станция с потерями 9 %, как в расчёте PVGIS
+# установщика (1311,5 против 1240 кВт·ч/кВт при прежнем угле → +5,8 %, docs/sources/kp/)
+PV_KWH_PER_KW_LO = sum(pv_monthly_kwh_per_kw("krasnodar").values())
+PV_KWH_PER_KW_HI = PV_KWH_PER_KW_LO * 1311.5 / 1240.0
 
 PLANS = [                # (код имени файла, тариф)
     ("city_single", TariffPlan("Город, одноставочный", "base", "single", ("base",))),
@@ -184,7 +187,7 @@ for code, plan in PLANS:
          base_pair,
          paybacks(e_base, CAPEX_BASE, SC_OPEX_1)),
         ("Выработка СЭС", f"{ru(PV_KWH_PER_KW_LO, 0)} кВт·ч/кВт",
-         f"{ru(PV_KWH_PER_KW_HI, 1)} кВт·ч/кВт",
+         f"{ru(PV_KWH_PER_KW_HI, 0)} кВт·ч/кВт (потери 9 %)",
          base_pair,
          paybacks(e_hi_pv, CAPEX_BASE, SC)),
     ]

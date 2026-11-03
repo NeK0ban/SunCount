@@ -109,6 +109,6 @@ def buyback_monthly(owner_category: str) -> dict[int, float]:
 # ----------------------------------------------------------------- выработка
 @lru_cache
 def pv_monthly_kwh_per_kw(city: str) -> dict[int, float]:
-    """Выработка 1 кВт СЭС по месяцам, кВт·ч (PVGIS-SARAH3 2005–2023, оптимальный угол, потери 14 %)."""
+    """Выработка 1 кВт СЭС по месяцам, кВт·ч (PVGIS-SARAH3 2005–2023, наклон 30°, юг, потери 14 % — как у команды 1)."""
     d = json.loads((DATA / "raw" / "pvgis" / f"{city}_pvcalc_1kw.json").read_text(encoding="utf-8"))
     return {x["month"]: float(x["E_m"]) for x in d["outputs"]["monthly"]["fixed"]}
