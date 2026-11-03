@@ -195,6 +195,8 @@ def discounted_payback(capex: float, flows: list[float], sc: Scenario | None = N
     увести его в минус, и тогда первое пересечение занижало бы срок.
     """
     sc = sc or Scenario()
+    if capex <= 0:
+        return 0.0
     acc, result = -capex, float("inf")
     for t, (cf, df) in enumerate(zip(flows, discount_factors(sc)), start=1):
         new = acc + cf * df

@@ -12,6 +12,7 @@ from dataclasses import asdict, dataclass, fields
 from pathlib import Path
 
 TOL_KWH = 1.0  # допуск на округление при проверке балансов
+TOL_PCT = 1e-6  # допуск на погрешность float для долей (100 * s / g при s == g бывает 100.00000000000001)
 
 
 @dataclass
@@ -39,7 +40,10 @@ class EnergyMetrics:
         bad = {k: round(v, 2) for k, v in checks.items() if abs(v) > TOL_KWH}
         if bad:
             raise ValueError(f"{self.profile_id}/{self.pv_kw} кВт: нарушены балансы {bad}")
-        if not 0 <= self.self_share <= 100 or not 0 <= self.coverage <= 100:
+        negative = [f.name for f in fields(EnergyMetrics) if f.name.endswith("_kwh") and getattr(self, f.name) < -TOL_PCT]
+        if negative:
+            raise ValueError(f"{self.profile_id}/{self.pv_kw} кВт: отрицательные объёмы {negative}")
+        if not all(-TOL_PCT <= v <= 100 + TOL_PCT for v in (self.self_share, self.coverage)):
             raise ValueError(f"{self.profile_id}/{self.pv_kw} кВт: доли должны быть в 0–100 %")
 
 
@@ -93,7 +97,9 @@ def annual_from_monthly(records: list[MonthlyMetrics]) -> EnergyMetrics:
     r0 = records[0]
     s = {k: sum(getattr(r, k) for r in records) for k in
          ("gen_kwh", "load_kwh", "self_kwh", "import_night_kwh")}
-    m = _record(r0.profile_id, r0.city, r0.pv_kw, s["gen_kwh"], s["load_kwh"], s["self_kwh"], s["import_night_kwh"])
+    # сумма округлённых месячных значений может дать ночную покупку чуть больше всей покупки — ограничиваем
+    night = min(s["import_night_kwh"], s["load_kwh"] - s["self_kwh"])
+    m = _record(r0.profile_id, r0.city, r0.pv_kw, s["gen_kwh"], s["load_kwh"], s["self_kwh"], night)
     m.validate()
     return m
 

@@ -2,8 +2,9 @@
 тарифе и на тарифе по зонам суток — из открытых отчётов ТНС энерго Кубань «Предельные уровни
 нерегулируемых цен» (лист «<670кВт»).
 
-Логика (ОП № 442, п. 65(3)): ГП покупает у микрогенерации по цене не выше оптовой цены
-электроэнергии + цены мощности с коэффициентом оплаты мощности ценовой категории владельца.
+Логика (ОП № 442, п. 65(3)): ГП покупает у микрогенерации по оптовой цене электроэнергии за месяц
++ цене мощности с коэффициентом оплаты мощности ценовой категории владельца. Все цены — без НДС
+(так они подписаны в отчёте).
   * 1-я ЦК (одноставочный): W1 = энергия + мощность × k1 — «средневзвешенная нерегулируемая цена
     для 1-й ЦК» из отчёта;
   * 2-я ЦК (день/ночь): солнце отдаёт энергию днём, поэтому берём дневную зону; оптовая часть =
@@ -79,9 +80,9 @@ cols = ["month", "flat_rub_kwh", "zones_day_rub_kwh", "predicted_avg_rub_kwh", "
         "energy_rub_mwh", "capacity_rub_mw", "k1", "markup_rub_kwh"]
 with OUT.open("w", newline="", encoding="utf-8-sig") as fh:
     w = csv.writer(fh)
-    w.writerow(cols + ["status", "source_url", "accessed"])
-    for r in rows:
-        w.writerow([round(r[c], 4) if isinstance(r.get(c), float) else r.get(c, "") for c in cols]
-                   + ["расчёт по открытым данным (оценка)", PAGE, "2026-10-13"])
+    w.writerow(cols + ["vat_included", "status", "source_url", "accessed"])
+    for r in rows:   # k1 — полностью: при 4 знаках «энергия + мощность × k1» не воспроизводит flat_rub_kwh
+        w.writerow([round(r[c], 10 if c == "k1" else 4) if isinstance(r.get(c), float) else r.get(c, "") for c in cols]
+                   + ["no", "расчёт по открытым данным (оценка)", PAGE, "2026-10-13"])
         print({c: (round(r[c], 3) if isinstance(r.get(c), float) else r.get(c)) for c in cols[:6]})
 print("written", OUT)

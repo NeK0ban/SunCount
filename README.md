@@ -17,7 +17,7 @@
 - `docs/assumptions.md` — реестр параметров, допущений и учтённых факторов (для отчёта)
 - `docs/kp_plan.md` — запросы КП установщикам: кому отправлены, текст, формат ответов
 - `data/energy_metrics*.csv`, `data/hourly_profiles/`, `data/hourly_solar/`, `data/solar_reference/` — данные команды 1 (годовые и помесячные показатели, почасовые ряды); протокол проверки — `docs/team1_data_check.md`, скрипт — `scripts/check_team1_data.py`
-- `data/raw/` — скачанные оригиналы (не редактировать); в `tns_microgen/` — один файл на год (последний месяц года содержит все месяцы)
+- `data/raw/` — скачанные оригиналы (не редактировать); в `tns_microgen/` — по одному файлу на год (последний месяц года содержит все месяцы), за текущий год — последний опубликованный и предыдущий
 - `reports/` — отчёты и презентации, оглавление — [reports/README.md](reports/README.md): в корне — результаты по ТЗ (промежуточный и итоговый отчёт), `reports/kurs/` — задания курса по лекциям, `reports/pasport/` — паспорт проекта
 - `reports/weekly/` — недельные отчёты команды в .docx (что сделано, что в работе, планы); текст правится в `reports/weekly/src/*.md`, docx собирает `python scripts/make_weekly_report.py`
 - `app/` и `.streamlit/config.toml` — веб-калькулятор на Streamlit (настройки: светлая тема, без кнопки Deploy): `streamlit_app.py` (интерфейс), `calc.py` (расчёт через `src/econ/api.py`, без Streamlit), `texts.py` (тексты и форматирование)
@@ -32,9 +32,10 @@ python -I scripts/parse_tns_buyback.py
 python -I scripts/parse_tns_price_limits.py
 python scripts/estimate_capex.py
 python scripts/stub_payback.py
-python scripts/export_excel.py
-python scripts/make_interim_report.py   # промежуточный отчёт → reports/SunCount_interim_report.pdf
 python scripts/sensitivity.py           # анализ чувствительности → results/sensitivity.csv, results/tornado_*.png
+python scripts/check_team1_data.py      # проверка данных команды 1 → results/team1_*.csv
+python scripts/export_excel.py          # после всех расчётов: SunCount_data.xlsx
+python scripts/make_interim_report.py   # промежуточный отчёт → reports/SunCount_interim_report.pdf
 python -m streamlit run app/streamlit_app.py   # калькулятор SunCount → http://localhost:8501
 ```
 

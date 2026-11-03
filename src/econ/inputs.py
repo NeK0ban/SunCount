@@ -53,6 +53,12 @@ def zone_prices(plan: TariffPlan) -> dict[str, dict[str, float]]:
     """{'I': {'day': p, 'night': p}, 'II': ..., 'III': ...}, ₽/кВт·ч."""
     t = _tariffs()
     t = t[(t.date_from == plan.date_from) & (t.category == plan.price_category) & (t.tariff_type == plan.tariff_type)]
+    if plan.tariff_type not in ("single", "two_zone") or t.empty:
+        all_t = _tariffs()
+        raise ValueError(f"Тариф «{plan.name}»: нет цен для price_category={plan.price_category!r}, "
+                         f"tariff_type={plan.tariff_type!r}, date_from={plan.date_from!r}. Допустимо: price_category "
+                         f"{sorted(all_t.category.unique())}, tariff_type ['single', 'two_zone'], "
+                         f"date_from {sorted(all_t.date_from.unique())} (data/tariffs_2026.csv)")
     out = {}
     for rng in ("I", "II", "III"):
         r = t[t.range == rng]
@@ -67,10 +73,15 @@ def zone_prices(plan: TariffPlan) -> dict[str, dict[str, float]]:
 def range_bounds(plan: TariffPlan, month: int) -> tuple[float, float]:
     """Границы I и II диапазонов, кВт·ч/мес, для данного месяца."""
     r = _ranges()
+    if not plan.range_keys:
+        raise ValueError(f"Тариф «{plan.name}»: не заданы ключи диапазонов range_keys")
     if len(plan.range_keys) == 1:
         key = plan.range_keys[0]
     else:
         key = plan.range_keys[0] if month in HEATING_MONTHS else plan.range_keys[1]
+    if key not in set(r.category):
+        raise ValueError(f"Тариф «{plan.name}»: неизвестный ключ диапазонов {key!r}; "
+                         f"есть {list(r.category)} (data/tariff_ranges_2026.csv)")
     row = r[r.category == key].iloc[0]
     return float(row.range_I_max_kwh_month), float(row.range_II_max_kwh_month)
 
@@ -89,14 +100,21 @@ def monthly_bill(plan: TariffPlan, month: int, day_kwh: float, night_kwh: float)
 
 
 # ----------------------------------------------------------------- цена выкупа
-@lru_cache
 def buyback_monthly(owner_category: str) -> dict[int, float]:
     """Цена выкупа по месяцам (1–12), ₽/кВт·ч, для владельца на тарифе 'flat' или 'zones'.
 
     Уровень — среднее восстановленной цены категории за май–сентябрь 2026 (data/buyback_by_category.csv).
     Сезонность — индекс средневзвешенной цены ТНС по календарным месяцам 2024–2026
     (data/buyback_prices.csv), нормированный так, что среднее за май–сентябрь = 1.
+    Возвращает копию: изменения у вызывающего не портят кеш.
     """
+    if owner_category not in ("flat", "zones"):
+        raise ValueError(f"owner_category: 'flat' или 'zones', получено {owner_category!r}")
+    return dict(_buyback_monthly(owner_category))
+
+
+@lru_cache
+def _buyback_monthly(owner_category: str) -> dict[int, float]:
     cat = pd.read_csv(DATA / "buyback_by_category.csv", encoding="utf-8-sig")
     level = float(cat["flat_rub_kwh" if owner_category == "flat" else "zones_day_rub_kwh"].mean())
     avg = pd.read_csv(DATA / "buyback_prices.csv", encoding="utf-8-sig")
@@ -107,8 +125,18 @@ def buyback_monthly(owner_category: str) -> dict[int, float]:
 
 
 # ----------------------------------------------------------------- выработка
-@lru_cache
+CITIES = ("krasnodar", "maykop")   # файлы data/raw/pvgis/<город>_pvcalc_1kw.json
+
+
 def pv_monthly_kwh_per_kw(city: str) -> dict[int, float]:
-    """Выработка 1 кВт СЭС по месяцам, кВт·ч (PVGIS-SARAH3 2005–2023, наклон 30°, юг, потери 14 % — как у команды 1)."""
+    """Выработка 1 кВт СЭС по месяцам, кВт·ч (PVGIS-SARAH3 2005–2023, наклон 30°, юг, потери 14 % — как у команды 1).
+    Возвращает копию: изменения у вызывающего не портят кеш."""
+    if city not in CITIES:
+        raise ValueError(f"Город: один из {CITIES}, получено {city!r}")
+    return dict(_pv_monthly(city))
+
+
+@lru_cache
+def _pv_monthly(city: str) -> dict[int, float]:
     d = json.loads((DATA / "raw" / "pvgis" / f"{city}_pvcalc_1kw.json").read_text(encoding="utf-8"))
     return {x["month"]: float(x["E_m"]) for x in d["outputs"]["monthly"]["fixed"]}

@@ -19,6 +19,6 @@ showSidebarBorder = true
 baseRadius = "small"
 font = "sans-serif"
 headingFontWeights = [700, 600, 600, 600, 600, 600]
-metricValueFontSize = "1.9rem"
+metricValueFontSize = "1.6rem"
 metricValueFontWeight = 600
 dataframeHeaderBackgroundColor = "#f3f5f8"

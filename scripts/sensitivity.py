@@ -7,7 +7,8 @@ Scenario(inverter_cost_rub=…) для 5 кВт. Считается для ка�
 
 Метод: меняем по одному параметру — сначала на нижнее, потом на верхнее значение,
 остальные базовые; записываем простой и дисконтированный срок окупаемости.
-Размах = |верх − низ| (округление до 0,1 года). src/econ/ не меняется:
+Размах = |верх − низ| по неокруглённым срокам (в CSV округлён до 0,1 года, поэтому может на 0,1
+отличаться от разности округлённых концов). src/econ/ не меняется:
 тариф и цена выкупа — масштабированием Economics (сезонность цены выкупа сохраняется),
 сценарии — dataclasses.replace(Scenario, …).
 
@@ -193,12 +194,11 @@ for code, plan in PLANS:
     ]
 
     for name, lo_label, hi_label, (s_lo, d_lo), (s_hi, d_hi) in params:
-        s_lo, s_hi, d_lo, d_hi = round(s_lo, 1), round(s_hi, 1), round(d_lo, 1), round(d_hi, 1)
-        rows.append({
+        rows.append({   # размах — по неокруглённым срокам, округление только при записи
             "tariff": plan.name, "parameter": name,
             "low_label": lo_label, "high_label": hi_label,
-            "simple_low": s_lo, "simple_high": s_hi,
-            "disc_low": d_lo, "disc_high": d_hi,
+            "simple_low": round(s_lo, 1), "simple_high": round(s_hi, 1),
+            "disc_low": round(d_lo, 1), "disc_high": round(d_hi, 1),
             "swing_simple": round(swing(s_lo, s_hi), 1),
             "swing_disc": round(swing(d_lo, d_hi), 1),
             "simple_base": simple_base, "disc_base": disc_base,
