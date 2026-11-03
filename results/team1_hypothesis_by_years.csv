@@ -1,0 +1,7 @@
+﻿city,pv_kw,equal_annual_load_kwh,self_share_ratio_by_years,hypothesis_ge_1_5
+krasnodar,3,3500.0,1.5695,True
+krasnodar,5,3500.0,1.5491,True
+krasnodar,10,3500.0,1.5103,True
+maykop,3,3500.0,1.5732,True
+maykop,5,3500.0,1.5566,True
+maykop,10,3500.0,1.5195,True
