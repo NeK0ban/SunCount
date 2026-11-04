@@ -8,9 +8,10 @@ Scenario(inverter_cost_rub=…) для 5 кВт. Считается для ка�
 Метод: меняем по одному параметру — сначала на нижнее, потом на верхнее значение,
 остальные базовые; записываем простой и дисконтированный срок окупаемости.
 Размах = |верх − низ| по неокруглённым срокам (в CSV округлён до 0,1 года, поэтому может на 0,1
-отличаться от разности округлённых концов). src/econ/ не меняется:
-тариф и цена выкупа — масштабированием Economics (сезонность цены выкупа сохраняется),
-сценарии — dataclasses.replace(Scenario, …).
+отличаться от разности округлённых концов). Сроки — через единую точку входа src/econ/api.py
+(evaluate: доля самопотребления, выработка, капзатраты, сценарии dataclasses.replace(Scenario, …));
+тариф и цена выкупа, как велит мастер-ТЗ (T3.1), — масштабированием Economics: так сохраняется
+сезонность цены выкупа, а buyback_rub_kwh в api — одна цена на все месяцы.
 
 Выход:
   results/sensitivity.csv (utf-8-sig),
@@ -34,6 +35,7 @@ from matplotlib.ticker import FuncFormatter
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+from src.econ.api import evaluate                        # noqa: E402
 from src.econ.exchange import make_stub_monthly          # noqa: E402
 from src.econ.inputs import TariffPlan, pv_monthly_kwh_per_kw  # noqa: E402
 from src.econ.model import (Economics, Scenario, annual_effect_monthly,  # noqa: E402
@@ -84,6 +86,14 @@ def paybacks(e: Economics, capex: float, sc: Scenario) -> tuple[float, float]:
     """(простой, дисконтированный) срок окупаемости, лет."""
     return (simple_payback(capex, e.effect_rub, sc.opex_rub),
             discounted_payback(capex, cash_flows(e, capex, sc), sc))
+
+
+def via_api(months_x, plan: TariffPlan, pv_kw: float = PV_KW, **kwargs) -> tuple[float, float]:
+    """(простой, дисконтированный) срок через единую точку входа src/econ/api.py (T1.4): доля самопотребления,
+    выработка, капзатраты и сценарии. Тариф и цену выкупа ТЗ велит менять масштабированием (scaled), потому что
+    buyback_rub_kwh в api — одна цена на все месяцы и убирает сезонность."""
+    r = evaluate(months_x, plan, pv_kw=pv_kw, **kwargs)
+    return r.simple_payback, r.disc_payback
 
 
 def swing(a: float, b: float) -> float:
@@ -142,13 +152,10 @@ SC_OPEX_1 = replace(SC, opex_rub=0.01 * CAPEX_BASE)
 # ----------------------------------------------------------------- расчёт
 rows: list[dict] = []
 for code, plan in PLANS:
-    e_base = annual_effect_monthly(months, plan)
-    base_pair = paybacks(e_base, CAPEX_BASE, SC)
+    e_base = annual_effect_monthly(months, plan)          # для масштабирования тарифа и цены выкупа
+    base_pair = via_api(months, plan)
+    assert abs(base_pair[0] - paybacks(e_base, CAPEX_BASE, SC)[0]) < 1e-9   # api = модель на базе
     simple_base, disc_base = round(base_pair[0], 1), round(base_pair[1], 1)
-
-    e_lo_share = annual_effect_monthly(months_lo_share, plan)
-    e_hi_share = annual_effect_monthly(months_hi_share, plan)
-    e_hi_pv = annual_effect_monthly(months_hi_pv, plan)
 
     k_lo, k_hi, p_min, p_max = BK_FLAT if plan.owner_category == "flat" else BK_ZONES
 
@@ -158,8 +165,8 @@ for code, plan in PLANS:
          paybacks(scaled(e_base, k_self=0.8), CAPEX_BASE, SC),
          paybacks(scaled(e_base, k_self=1.2), CAPEX_BASE, SC)),
         ("Доля самопотребления", "20 %", "50 %",
-         paybacks(e_lo_share, CAPEX_BASE, SC),
-         paybacks(e_hi_share, CAPEX_BASE, SC)),
+         via_api(months_lo_share, plan),
+         via_api(months_hi_share, plan)),
         ("Цена выкупа", f"{ru(p_min, 2)} ₽", f"{ru(p_max, 2)} ₽",
          paybacks(scaled(e_base, k_export=k_lo), CAPEX_BASE, SC),
          paybacks(scaled(e_base, k_export=k_hi), CAPEX_BASE, SC)),
@@ -167,30 +174,31 @@ for code, plan in PLANS:
          paybacks(scaled(e_base, k_export=0.5), CAPEX_BASE, SC),
          base_pair),
         ("Капзатраты", f"{ru(CAPEX_LOW / 1000, 0)} тыс. ₽", f"{ru(CAPEX_HIGH / 1000, 0)} тыс. ₽",
-         paybacks(e_base, CAPEX_LOW, SC),
-         paybacks(e_base, CAPEX_HIGH, SC)),
+         via_api(months, plan, capex_level="low"),
+         via_api(months, plan, capex_level="high")),
         ("Ставка дисконтирования", "−3 п. п.", "+3 п. п.",
-         paybacks(e_base, CAPEX_BASE, SC_DISC_LO),
-         paybacks(e_base, CAPEX_BASE, SC_DISC_HI)),
+         via_api(months, plan, scenario=SC_DISC_LO),
+         via_api(months, plan, scenario=SC_DISC_HI)),
         ("Рост тарифа", "4 %/год", "прогноз МЭР",
-         paybacks(e_base, CAPEX_BASE, SC_TARIFF_4),
+         via_api(months, plan, scenario=SC_TARIFF_4),
          base_pair),
         ("Срок службы", "25 лет", "30 лет",
          base_pair,
-         paybacks(e_base, CAPEX_BASE, SC_LIFE_30)),
+         via_api(months, plan, scenario=SC_LIFE_30)),
         ("Деградация панелей", "0,4 %/год", "0,6 %/год",
          base_pair,
-         paybacks(e_base, CAPEX_BASE, SC_DEG_06)),
+         via_api(months, plan, scenario=SC_DEG_06)),
         ("НДФЛ с дохода от излишков", "с 2029 г.", "льготу продлят",
          base_pair,
-         paybacks(e_base, CAPEX_BASE, SC_NDFL_EXT)),
+         via_api(months, plan, scenario=SC_NDFL_EXT)),
         ("Обслуживание", "0 ₽/год", f"{SC_OPEX_1.opex_rub:,.0f} ₽/год".replace(",", " "),
          base_pair,
-         paybacks(e_base, CAPEX_BASE, SC_OPEX_1)),
+         via_api(months, plan, scenario=SC_OPEX_1)),
         ("Выработка СЭС", f"{ru(PV_KWH_PER_KW_LO, 0)} кВт·ч/кВт",
          f"{ru(PV_KWH_PER_KW_HI, 0)} кВт·ч/кВт (потери 9 %)",
          base_pair,
-         paybacks(e_hi_pv, CAPEX_BASE, SC)),
+         via_api(months_hi_pv, plan, pv_kw=PV_KW * PV_KWH_PER_KW_HI / PV_KWH_PER_KW_LO,
+                 capex_rub=CAPEX_BASE, scenario=SC)),   # та же станция 5 кВт, выработка ×1,058
     ]
 
     for name, lo_label, hi_label, (s_lo, d_lo), (s_hi, d_hi) in params:
@@ -227,8 +235,7 @@ for code, plan in PLANS:
     print(f"  {plan.name}: {ru(row.simple_base)} / {ru(row.disc_base)} лет против "
           f"{ru(ref_s)} / {ru(ref_d)} в stub_payback — {ok}")
 
-# та же база через единую точку входа модели (T1.4, src/econ/api.py): расчёт не должен расходиться
-from src.econ.api import evaluate  # noqa: E402
+# база через единую точку входа модели (T1.4, src/econ/api.py) — для наглядности в консоли
 print("\nСверка базы с src/econ/api.py (evaluate):")
 for code, plan in PLANS:
     row = df[df.tariff == plan.name].iloc[0]

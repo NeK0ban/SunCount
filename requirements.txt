@@ -6,4 +6,5 @@ xlrd>=2.0
 reportlab>=4.0
 python-docx>=1.1   # недельный отчёт (scripts/make_weekly_report.py)
 jinja2>=3.1        # подсветка строки таблицы в веб-сервисе (pandas Styler)
+pytest>=8.0         # автотесты tests/ (T5.1): python -m pytest -q
 streamlit==1.66.1  # веб-сервис app/ (T4.1); версия закреплена по ТЗ, 1.39 не ставится на Python 3.14

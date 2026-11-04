@@ -38,6 +38,7 @@ python scripts/zones_effect.py          # тариф день/ночь прот�
 python scripts/heatmap_real.py          # тепловая карта на данных команды 1 → results/heatmap_real*.csv/png
 python scripts/export_excel.py          # после всех расчётов: SunCount_data.xlsx
 python scripts/make_interim_report.py   # промежуточный отчёт → reports/SunCount_interim_report.pdf
+python -m pytest -q                     # автотесты (tests/)
 python -m streamlit run app/streamlit_app.py   # веб-сервис SunCount → http://localhost:8501
 ```
 
