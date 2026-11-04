@@ -15,7 +15,7 @@ desktop.ini
 # Временные файлы Excel
 ~$*
 
-# Тесты и калькулятор
+# Тесты и веб-сервис
 .pytest_cache/
 .streamlit/secrets.toml
 

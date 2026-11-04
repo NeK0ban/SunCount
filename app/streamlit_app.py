@@ -1,5 +1,5 @@
 # app/streamlit_app.py
-"""Точка входа калькулятора SunCount. Запуск из корня репозитория: python -m streamlit run app/streamlit_app.py"""
+"""Точка входа веб-сервиса SunCount. Запуск из корня репозитория: python -m streamlit run app/streamlit_app.py"""
 import sys
 from pathlib import Path
 

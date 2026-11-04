@@ -1,4 +1,4 @@
-# Настройки калькулятора SunCount (Streamlit). Запуск: python -m streamlit run app/streamlit_app.py
+# Настройки веб-сервиса SunCount (Streamlit). Запуск: python -m streamlit run app/streamlit_app.py
 
 [client]
 # Без кнопки Deploy и меню разработчика: пользователю они не нужны
