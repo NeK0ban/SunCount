@@ -567,6 +567,26 @@ story += [para("Коммерческие предложения", "h2"),
                + (f" Предложения гибридных станций с аккумуляторами ({len(kp_hybrid)}) в расчёт не входят: это вне рамок проекта."
                   if len(kp_hybrid) else ""))]
 
+# сверка КП с диапазоном капзатрат (T1.7): КП на мощности из модели + плата за подключение (её нет ни в одном КП);
+# комплект без монтажа — с монтажом 15–25 % (диапазон, названный компанией)
+kp_check = []
+for _, r in kp_grid[kp_grid.pv_kw.isin(cap.index)].sort_values(["pv_kw", "company"]).iterrows():
+    kw = int(r.pv_kw)
+    if pd.notna(r.price_total_rub):
+        lo = hi = r.price_total_rub + GRID[kw]
+        what = "«под ключ»"
+    else:
+        lo, hi = r.price_equipment_rub * 1.15 + GRID[kw], r.price_equipment_rub * 1.25 + GRID[kw]
+        what = "комплект + монтаж 15–25 %"
+    inside = cap.capex_low_rub[kw] <= lo and hi <= cap.capex_high_rub[kw]
+    price = rub(lo) if lo == hi else f"{rub(lo)}–{rub(hi)}"
+    kp_check.append(f"{r.company}, {kw} кВт ({what}): {price} ₽ с подключением — "
+                    + ("в диапазоне" if inside else "<b>вне диапазона</b>")
+                    + f" {rub(cap.capex_low_rub[kw])}–{rub(cap.capex_high_rub[kw])} ₽")
+story += [para("<b>Сверка КП с диапазоном капзатрат.</b> " + "; ".join(kp_check) + ". База сама построена по этим КП, "
+               "поэтому сверка показывает прежде всего, что верхняя граница (прежняя оценка) не ниже рыночных цен. КП на другие "
+               "мощности (6 и 15 кВт) напрямую не сравниваются — их учитывает интерполяция цены ватта.", "note")]
+
 # ---------- 7. Результаты
 pc = lambda x: f"{int(x + 0.5)}"
 prc = lambda s: (pc(min(s)) if pc(min(s)) == pc(max(s)) else f"{pc(min(s))}–{pc(max(s))}")
