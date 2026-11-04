@@ -16,7 +16,7 @@
 - `src/econ/params.py` — параметры по годам с источниками; `src/econ/inputs.py` — загрузка тарифов, цен выкупа, PVGIS
 - `docs/assumptions.md` — реестр параметров, допущений и учтённых факторов (для отчёта)
 - `docs/kp_plan.md` — запросы КП установщикам: кому отправлены, текст, формат ответов
-- `data/energy_metrics*.csv`, `data/hourly_profiles/`, `data/hourly_solar/`, `data/solar_reference/` — данные команды 1 (годовые и помесячные показатели, почасовые ряды); протокол проверки — `docs/team1_data_check.md`, скрипт — `scripts/check_team1_data.py`
+- `data/energy_metrics*.csv`, `data/hourly_profiles/`, `data/hourly_solar/`, `data/solar_reference/`, `data/reference/` — данные команды 1 (годовые и помесячные показатели, в том числе по каждому году PVGIS, почасовые ряды, помесячное потребление портретов); протокол проверки — `docs/team1_data_check.md`, скрипт — `scripts/check_team1_data.py`
 - `data/raw/` — скачанные оригиналы (не редактировать); в `tns_microgen/` — по одному файлу на год (последний месяц года содержит все месяцы), за текущий год — последний опубликованный и предыдущий
 - `reports/` — отчёты и презентации, оглавление — [reports/README.md](reports/README.md): в корне — результаты по ТЗ (промежуточный и итоговый отчёт), `reports/kurs/` — задания курса по лекциям, `reports/pasport/` — паспорт проекта
 - `reports/weekly/` — недельные отчёты команды в .docx (что сделано, что в работе, планы); текст правится в `reports/weekly/src/*.md`, docx собирает `python scripts/make_weekly_report.py`

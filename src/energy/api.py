@@ -5,7 +5,6 @@
 """
 from __future__ import annotations
 
-from dataclasses import replace
 from datetime import datetime, timedelta
 from pathlib import Path
 import numpy as np
@@ -96,61 +95,79 @@ def build_profile(monthly_kwh: list[float], presence: str,
     return load
 
 
-def solar_hourly(city: str, pv_kw: float, tilt: float = 30,
-                 azimuth: float = 180) -> np.ndarray:
-    """Локальный почасовой кэш 1 кВт; нельзя незаметно игнорировать угол.
-
-    Для новой геометрии сначала запустить fetch_pvgis с её параметрами.
-    """
+def _check_solar_args(city: str, pv_kw: float, tilt: float, azimuth: float):
     _validate_city(city)
     if not np.isfinite(pv_kw) or pv_kw <= 0:
         raise ValueError("pv_kw должно быть положительным конечным")
-    if not 0 <= tilt <= 90 or not 0 <= azimuth < 360:
+    if not np.isfinite(tilt) or not np.isfinite(azimuth) or not 0 <= tilt <= 90 or not 0 <= azimuth < 360:
         raise ValueError("tilt: 0..90, azimuth: 0..360 (без 360)")
-    filename = f"solar_{city}_tilt{tilt:g}_az{azimuth:g}_1kw.npy"
-    path = BASE / "data" / "solar_reference" / filename
+
+
+def solar_hourly(city: str, pv_kw: float, tilt: float = 30,
+                 azimuth: float = 180) -> np.ndarray:
+    """8760 средних значений PVGIS: только для графиков/типичных суток."""
+    _check_solar_args(city, pv_kw, tilt, azimuth)
+    path = BASE / "data" / "solar_reference" / f"solar_{city}_tilt{tilt:g}_az{azimuth:g}_1kw.npy"
     if not path.exists():
-        raise FileNotFoundError(f"Нет солнечной базы {path}. Сначала запустите fetch_pvgis.py")
+        raise FileNotFoundError(f"Нет солнечного кэша для данной геометрии: {path}")
     arr = np.load(path, allow_pickle=False)
     if arr.shape != (8760,) or not np.all(np.isfinite(arr)) or np.any(arr < 0):
-        raise ValueError(f"Повреждён кэш солнечной выработки {path}")
-    return arr.astype(float) * pv_kw
+        raise ValueError(f"Повреждён типичный ряд PVGIS: {path}")
+    return arr * pv_kw
+
+
+def solar_hourly_by_year(city: str, pv_kw: float, tilt: float = 30,
+                         azimuth: float = 180) -> np.ndarray:
+    """Содержит ровно 19 x 8760 часов, каждый год PVGIS отдельно, UTC+3.
+
+    29 февраля исключено; три ночных часа 01.01.2005 заполнены нулем.
+    """
+    _check_solar_args(city, pv_kw, tilt, azimuth)
+    path = BASE / "data" / "solar_reference" / f"solar_{city}_tilt{tilt:g}_az{azimuth:g}_1kw_by_year.npy"
+    if not path.exists():
+        raise FileNotFoundError(f"Нет 19-летней почасовой базы: {path}; запустите scripts.import_uploaded_pvgis")
+    arr = np.load(path, allow_pickle=False)
+    if arr.shape != (19, 8760) or not np.all(np.isfinite(arr)) or np.any(arr < 0):
+        raise ValueError(f"Повреждена 19-летняя солнечная база: {path}")
+    return arr * pv_kw
 
 
 def simulate(load_8760: np.ndarray, pv_kw: float, city: str,
              tilt: float = 30, azimuth: float = 180) -> tuple[list[MonthlyMetrics], np.ndarray, np.ndarray]:
-    """12 MonthlyMetrics + 8760 нагрузки + 8760 выработки (кВт·ч/час).
+    """Помесячные балансы: сначала 19 отдельных лет, потом средние суммы.
 
-    profile_id='custom' (в сигнатуре нет profile_id); для готовых портретов
-    экспортер заменяет его через dataclasses.replace.
+    Возвращаемый почасовой PV 8760 предназначен только для графика; нельзя
+    использовать его для пересчета экономических показателей.
+    Сигнатура и возвращаемые типы согласованы с калькулятором команды 2.
     """
     load = np.asarray(load_8760, dtype=float)
     if load.shape != (8760,) or not np.all(np.isfinite(load)) or np.any(load < 0):
         raise ValueError("load_8760: 8760 конечных неотрицательных значений")
-    gen = solar_hourly(city, pv_kw, tilt, azimuth)
-    self_use = np.minimum(gen, load)
-    grid_import = load - self_use
-    grid_export = gen - self_use
-    out = []
+    gens_19 = solar_hourly_by_year(city, pv_kw, tilt, azimuth)
+    # Важно: min ДО усреднения. Массив (19 лет, 8760 часов).
+    self_19 = np.minimum(gens_19, load[np.newaxis, :])
+    imports_19 = load[np.newaxis, :] - self_19
+    exports_19 = gens_19 - self_19
+    result = []
     for month in range(1, 13):
-        idx = HOUR_MONTH == month
-        g = float(gen[idx].sum())
-        l = float(load[idx].sum())
-        s = float(self_use[idx].sum())
-        imp = float(grid_import[idx].sum())
-        exp = float(grid_export[idx].sum())
-        day_imp = float(grid_import[idx & ~NIGHT].sum())
-        night_imp = float(grid_import[idx & NIGHT].sum())
-        out.append(MonthlyMetrics(
+        mask = HOUR_MONTH == month
+        gen = float(gens_19[:, mask].sum(axis=1).mean())
+        consumption = float(load[mask].sum())
+        self_kwh = float(self_19[:, mask].sum(axis=1).mean())
+        imported = float(imports_19[:, mask].sum(axis=1).mean())
+        exported = float(exports_19[:, mask].sum(axis=1).mean())
+        day = float(imports_19[:, mask & ~NIGHT].sum(axis=1).mean())
+        night = float(imports_19[:, mask & NIGHT].sum(axis=1).mean())
+        result.append(MonthlyMetrics(
             profile_id="custom", city=city, pv_kw=float(pv_kw), month=month,
-            gen_kwh=g, load_kwh=l, self_kwh=s,
-            export_kwh=exp, import_kwh=imp,
-            import_day_kwh=day_imp, import_night_kwh=night_imp,
-            self_share=100*s/g if g else 0.0,
-            coverage=100*s/l if l else 0.0,
+            gen_kwh=gen, load_kwh=consumption, self_kwh=self_kwh,
+            export_kwh=exported, import_kwh=imported,
+            import_day_kwh=day, import_night_kwh=night,
+            self_share=100*self_kwh/gen if gen else 0.,
+            coverage=100*self_kwh/consumption if consumption else 0.,
         ))
-    if not np.allclose(load, self_use + grid_import, atol=1e-10):
-        raise AssertionError("Нарушен баланс потребления")
-    if not np.allclose(gen, self_use + grid_export, atol=1e-10):
-        raise AssertionError("Нарушен баланс генерации")
-    return out, load.copy(), gen
+    if not np.allclose(load, self_19 + imports_19, atol=1e-10):
+        raise AssertionError("Баланс потребления нарушен")
+    if not np.allclose(gens_19, self_19 + exports_19, atol=1e-10):
+        raise AssertionError("Баланс солнечной генерации нарушен")
+    return result, load.copy(), solar_hourly(city, pv_kw, tilt, azimuth)
