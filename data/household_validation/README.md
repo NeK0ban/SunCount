@@ -1,0 +1,1 @@
+Пять домохозяйств Краснодара и Майкопа, по 14 суток, 1680 часовых интервалов. Общая методика и происхождение набора: docs/household_validation.md. Параметры: scenario_parameters.json. Для просмотра используются household_readings.csv и household_metadata.csv. readings_template.csv — отдельный пустой шаблон для будущего сбора.

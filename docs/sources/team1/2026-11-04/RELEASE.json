@@ -1,0 +1,19 @@
+{
+  "release_date": "2026-11-04",
+  "exchange_format": "v1.0",
+  "revision": "regional-household-scenarios-2026-11-04",
+  "delivery_status": "scenario_comparison_complete_field_validation_and_external_integration_pending",
+  "dataset_type": "MODELLED_HOUSEHOLD_SCENARIOS",
+  "scenario_households": 5,
+  "scenario_hourly_intervals": 1680,
+  "received_measured_households": 0,
+  "target_final_delivery_date": "2026-12-04",
+  "csv_encoding": "utf-8-sig",
+  "pump_farm_included": false,
+  "tests_passed": 13,
+  "unchanged_existing_csv_payloads": 28,
+  "all_csv_count": 35,
+  "unique_validation_hours": 840,
+  "household_mae_mape_comparison_completed": true,
+  "regional_field_validation_completed": false
+}

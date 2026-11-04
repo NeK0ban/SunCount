@@ -1,0 +1,22 @@
+{
+  "status": "SCENARIO_COMPARISON_COMPLETED",
+  "household_count": 5,
+  "hourly_rows": 1680,
+  "validation_unique_hours": 840,
+  "comparison_count": 20,
+  "primary_comparison_count": 5,
+  "days_per_household": 14,
+  "calibration_days": 7,
+  "validation_days": 7,
+  "time_zone": "UTC+03:00",
+  "generator": "independent_15_minute_appliance_events_and_thermal_balance",
+  "matching": "exact local timestamps in fixed 2023 calendar",
+  "model_rows_modified": false,
+  "generation_reads_reference_profiles": false,
+  "field_validation_completed": false,
+  "all_csv_encoding": "utf-8-sig",
+  "primary_raw_hourly_mae_range": [
+    0.18054901163095236,
+    2.234808516482143
+  ]
+}

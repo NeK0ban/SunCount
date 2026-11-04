@@ -1,0 +1,18 @@
+{
+  "source_archive": "SunCount_PVGIS_2023_COMPLETE_v1_0.zip",
+  "source_archive_sha256": "f4cc43587edb8fa050fb053ff5d95d39b3a52805615ad6f40d896fae0e311e45",
+  "source_member": "SunCount_PVGIS_2023_FINAL/src/consumption_profiles.py",
+  "source_member_sha256": "848400d0afc816558cd4c008a1b35c7d4182a851e8cf639d13c2755691905f8e",
+  "baseline_note": "Archive issued 21.10.2026, preceding the 24.10 request; reproduces the quoted 36.815039 kWh night import. Not an independently recovered 24.10 code snapshot.",
+  "current_profile_code": "src/energy/api.py",
+  "profile_change": {
+    "old_jan_load_kwh": 276.679772,
+    "new_jan_load_kwh": 276.68000000000006,
+    "old_jan_night_load_kwh": 36.815039,
+    "new_jan_night_load_kwh": 66.87837865289838,
+    "old_jan_night_share_pct": 13.30601031433552,
+    "new_jan_night_share_pct": 24.171743043551526,
+    "old_load_new_weather_night_import": 36.81503899999998,
+    "new_load_new_weather_night_import": 66.8783786528984
+  }
+}
