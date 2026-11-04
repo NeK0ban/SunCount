@@ -6,6 +6,7 @@
   data/hourly_profiles/<портрет>_<город>_8760.csv — почасовое потребление команды 1;
   data/raw/team1_pvgis/pvgis_2005_2023_original_upload.zip — исходные почасовые ряды PVGIS (2005–2023, 30°, юг, 14 %).
 Выход:
+  results/team1_tz_checks.csv — 9 проверок задачи T1.5 мастер-ТЗ («ок» / «ошибка» и пояснение);
   results/team1_yearwise_check.csv — по каждому сочетанию «портрет × город × мощность»: доля самопотребления в файле
     и в нашем пересчёте по годам, наибольшее расхождение помесячных объёмов, доля по «типичному году» (метод первой
     версии) и его завышение, разброс доли по отдельным годам;
@@ -74,6 +75,68 @@ mon = read_csv(DATA / "energy_metrics_monthly.csv", MonthlyMetrics)
 print(f"Формат: {len(annual)} годовых и {len(mon)} помесячных записей прочитаны и проверены read_csv")
 mdf = pd.read_csv(DATA / "energy_metrics_monthly.csv").set_index(["profile_id", "city", "pv_kw", "month"]).sort_index()
 
+
+def tz_checks() -> pd.DataFrame:
+    """9 проверок задачи T1.5 мастер-ТЗ (таблица в разделе 12.1)."""
+    a = pd.read_csv(DATA / "energy_metrics.csv")
+    m = pd.read_csv(DATA / "energy_metrics_monthly.csv")
+    fields = ["profile_id", "city", "pv_kw", "gen_kwh", "load_kwh", "self_kwh", "export_kwh", "import_kwh",
+              "import_day_kwh", "import_night_kwh", "self_share", "coverage"]   # docs/exchange_format.md, раздел 2
+    keys = ["profile_id", "city", "pv_kw"]
+    out = []
+
+    def add(n, name, ok, note):
+        out.append({"n": n, "check": name, "ok": bool(ok), "note": note})
+
+    add(1, "Читается и проходит балансы", True, f"read_csv: {len(annual)} годовых, {len(mon)} помесячных записей")
+    add(2, "Колонки как в docs/exchange_format.md", list(a.columns) == fields and
+        sorted(m.columns) == sorted(fields + ["month"]),
+        "годовой файл — тот же порядок; в помесячном month стоит после pv_kw (читаем по именам)")
+    codes = (set(a.profile_id) <= {"day_absent", "home_all_day", "ac", "el_heating", "pump_farm"}
+             and set(a.city) == {"krasnodar", "maykop"} and set(a.pv_kw) == {3, 5, 10})
+    add(3, "Коды profile_id, city, pv_kw", codes, f"портреты {sorted(set(a.profile_id))} (pump_farm не сделан — "
+        "необязательный), города krasnodar/maykop, мощности 3/5/10")
+    full = (len(a) == len(a[keys].drop_duplicates()) and
+            m.groupby(keys).month.apply(lambda s: sorted(s) == list(range(1, 13))).all() and
+            len(a) == m[keys].drop_duplicates().shape[0])
+    add(4, "Полнота: 1 годовая и 12 помесячных строк", full, f"{len(a)} сочетаний × 12 месяцев")
+    s = m.groupby(keys)[fields[3:10]].sum()
+    diff = (s - a.set_index(keys)[fields[3:10]]).abs().max().max()
+    add(5, "Помесячные суммы = годовым (±12 кВт·ч)", diff <= 12, f"наибольшее расхождение {diff:.1e} кВт·ч")
+    shares = pd.concat([a[["self_share", "coverage"]], m[["self_share", "coverage"]]])
+    pct = shares.min().min() >= 0 and shares.max().max() <= 100 and a.self_share.max() > 1
+    add(6, "Доли в процентах 0–100", pct, f"self_share {a.self_share.min():.1f}–{a.self_share.max():.1f} %, "
+        f"coverage {a.coverage.min():.1f}–{a.coverage.max():.1f} %")
+    y = (a.gen_kwh / a.pv_kw).groupby(a.city).mean()
+    dev = {c: 100 * (y[c] / ref - 1) for c, ref in (("krasnodar", 1240), ("maykop", 1229))}
+    add(7, "Выработка в пределах ±15 % от PVGIS (1240 / 1229)", all(abs(v) <= 15 for v in dev.values()),
+        f"Краснодар {y['krasnodar']:.1f} ({dev['krasnodar']:+.1f} %), Майкоп {y['maykop']:.1f} ({dev['maykop']:+.1f} %); "
+        "ориентиры ТЗ — при наклоне 36°, при согласованных 30° PVGIS даёт 1234 / 1223")
+    g = m.pivot_table(index=keys, columns="month", values="gen_kwh")
+    eh = m[m.profile_id == "el_heating"].groupby("month").load_kwh.mean()
+    season = (g[6] > g[12]).all() and eh.loc[[12, 1, 2]].mean() > eh.loc[[6, 7, 8]].mean()
+    add(8, "Сезонность: июнь > декабрь; el_heating зимой > летом", season,
+        f"выработка июня больше декабря во всех {len(g)} сочетаниях; el_heating: зима {eh.loc[[12, 1, 2]].mean():.0f}, "
+        f"лето {eh.loc[[6, 7, 8]].mean():.0f} кВт·ч/мес")
+    d = m.pivot_table(index=keys, columns="month", values="import_day_kwh")
+    summer, winter = d[[6, 7, 8]].mean(axis=1), d[[12, 1, 2]].mean(axis=1)
+    # у дома с кондиционером летнее потребление в 1,6–1,7 раза выше зимнего, и малая станция этот рост не
+    # перекрывает — для него правило «летом дневная покупка меньше» не обязано выполняться
+    lower = summer < winter
+    no_ac = lower[lower.index.get_level_values("profile_id") != "ac"]
+    zones = (m.import_night_kwh > 0).all() and no_ac.all()
+    add(9, "Зоны суток: ночная покупка > 0, дневная летом меньше зимней", zones,
+        f"ночная покупка > 0 во всех строках; дневная летом меньше зимней во всех {len(no_ac)} сочетаниях без "
+        f"кондиционера; у дома с кондиционером — в {int(lower.sum() - no_ac.sum())} из {len(lower) - len(no_ac)} "
+        "(летом он потребляет в 1,6–1,7 раза больше, чем зимой, — объяснимо)")
+    return pd.DataFrame(out)
+
+
+tz = tz_checks()
+print("\nПроверки T1.5 мастер-ТЗ:")
+for r in tz.itertuples():
+    print(f"  {r.n}. {r.check}: {'ок' if r.ok else 'ОШИБКА'} — {r.note}")
+
 rows, hyp = [], []
 for city in ("krasnodar", "maykop"):
     years, month, day = pvgis_years(city)
@@ -109,10 +172,11 @@ for city in ("krasnodar", "maykop"):
 OUT.mkdir(exist_ok=True)
 d, h = pd.DataFrame(rows), pd.DataFrame(hyp)
 d.to_csv(OUT / "team1_yearwise_check.csv", index=False, encoding="utf-8-sig")
+tz.to_csv(OUT / "team1_tz_checks.csv", index=False, encoding="utf-8-sig")
 h.to_csv(OUT / "team1_hypothesis_by_years.csv", index=False, encoding="utf-8-sig")
 print(f"Пересчёт по годам против файла: max |разница| помесячных объёмов {d.max_abs_diff_kwh.max():.1e} кВт·ч, "
       f"доли самопотребления {(d.self_share_file - d.self_share_recomputed).abs().max():.3f} п. п.")
 print(f"Метод «типичного года» (первая версия данных) завышал долю на "
       f"{d.typical_bias_pp.min():.2f}–{d.typical_bias_pp.max():.2f} п. п.")
 print(h.to_string(index=False))
-print("Готово: results/team1_yearwise_check.csv, results/team1_hypothesis_by_years.csv")
+print("Готово: results/team1_tz_checks.csv, results/team1_yearwise_check.csv, results/team1_hypothesis_by_years.csv")
