@@ -142,19 +142,24 @@ def evaluate(months: list[MonthlyMetrics], plan: TariffPlan, pv_kw: float,
 
 
 def recommend(months_by_kw: dict[int, list[MonthlyMetrics]], plan: TariffPlan,
-              **kwargs) -> tuple[int, dict[int, Result]]:
+              capex_by_kw: dict[int, float] | None = None, **kwargs) -> tuple[int, dict[int, Result]]:
     """Мощность с наименьшим простым сроком окупаемости (по ТЗ) + результаты по всем мощностям.
 
     Сроки, различающиеся меньше чем на 0,05 года, считаются равными — тогда берётся меньшая (более дешёвая)
     мощность. Если не окупается ни одна станция, возвращается мощность с наибольшим годовым эффектом;
     что станция не окупается, веб-сервис видит по simple_payback == inf. kwargs передаются в evaluate()
     (capex_level, buyback_rub_kwh, scenario, netting; capex_rub здесь не имеет смысла — цена у мощностей разная).
+    Своя цена станции пользователя — capex_by_kw = {кВт: ₽}: для каждой мощности передаётся в evaluate как capex_rub
+    (веб-сервис, T4.2); границы payback_low / payback_high тогда nan.
     """
     if "capex_rub" in kwargs:
         raise ValueError("recommend(): своя цена capex_rub одна на все мощности — используйте evaluate()")
     if not months_by_kw:
         raise ValueError("recommend(): нет ни одной мощности для сравнения")
-    results = {kw: evaluate(months, plan, kw, **kwargs) for kw, months in sorted(months_by_kw.items())}
+    if capex_by_kw is not None and set(capex_by_kw) != set(months_by_kw):
+        raise ValueError(f"recommend(): своя цена задана для {sorted(capex_by_kw)}, а мощности {sorted(months_by_kw)}")
+    results = {kw: evaluate(months, plan, kw, capex_rub=capex_by_kw[kw] if capex_by_kw else None, **kwargs)
+               for kw, months in sorted(months_by_kw.items())}
     finite = {kw: r for kw, r in results.items() if r.simple_payback != INF}
     if not finite:
         return max(results, key=lambda kw: results[kw].effect_rub), results
