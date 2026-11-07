@@ -1,14 +1,18 @@
-item,unit,price_rub,basis,source,note
-mounting,per_panel,3186,"набор на 4 панели параллельно кровле 12 745 ₽ / 4",data/capex_components.csv (e-solarpower 2026-10-15),для скатной крыши
-dc_cable,per_m,123,PV1-F 1×4 мм²,data/capex_components.csv (НСК-Электро 2026-10-15),
-dc_cable_m_per_string,m,40,2 полюса × ~20 м от крыши до инвертора,scripts/estimate_capex.py (допущение),допущение
-mc4,per_pair,150,MC4 30A,data/capex_components.csv (Reenergo 2026-10-15),пары на цепочку: 2 + 2 запасных на систему
-dc_spd,per_mppt,3120,УЗИП SUP2H-PV 40 кА,data/capex_components.csv (Реалсолар 2026-10-15),
-dc_fuse,per_string_pole,950,Solar fuse 1000 В,data/capex_components.csv (Реалсолар 2026-10-15),на каждую цепочку + и −
-ac_protection_1ph,per_system,6000,"AC-автомат, AC УЗИП, бокс",scripts/estimate_capex.py (допущение),"допущение, цен нет"
-ac_protection_3ph,per_system,10000,"AC-автомат, AC УЗИП, бокс",scripts/estimate_capex.py (допущение),"допущение, цен нет"
-delivery,per_system,5000,доставка,scripts/estimate_capex.py (допущение),допущение
-meter,per_system,0,прибор учёта ставит сетевая организация,"522-ФЗ: приборы учёта у граждан с 01.07.2020 ставит сетевая организация (scripts/estimate_capex.py)",ставка С8 не найдена — если счётчик меняют за счёт заявителя
-labour_share,share_of_equipment,0.20,"монтаж и пусконаладка 15–25 % от стоимости комплекта, середина",data/kp_responses.csv (Экопроект-Энерго 20.10.2026),границы 0.15 и 0.25 — диапазон цены
-grid_connection_c1,per_system,21183,"ставка С1 17 363,37 ₽ + НДС 22 %",приказ ДГРТ № 19/2025-э (data/capex_components.csv),плата = min(С1; 11 470 ₽ × кВт)
-grid_connection_per_kw,per_kw,11470,льготная ставка за 1 кВт с НДС,приказ ДГРТ № 19/2025-э (data/capex_components.csv),
+﻿item,unit,price_rub,basis,source,note
+mounting,per_panel,3248.0,крепёж на скатную крышу параллельно кровле,data/equipment/offers.csv (e-solarpower),цена — из offers.csv (scripts/build_equipment_prices.py)
+dc_cable,per_m,160.88,солнечный кабель PV-1F 1×4 мм²,data/equipment/offers.csv (ЭТМ),цена — из offers.csv
+dc_cable_m_per_string,m,40.0,2 полюса × ~20 м от крыши до инвертора,scripts/estimate_capex.py (допущение),допущение
+mc4,per_pair,115.28,пара разъёмов MC4,data/equipment/offers.csv (ЭТМ),пары на цепочку: 2 + 2 запасных на систему
+dc_spd_600,per_mppt,9117.6,УЗИП постоянного тока 600 В на вход MPPT,data/equipment/offers.csv (ЭТМ),для инверторов с входом до 600 В
+dc_spd_1000,per_mppt,10031.9,УЗИП постоянного тока 1000 В на вход MPPT,data/equipment/offers.csv (ЭТМ),для инверторов с входом выше 600 В
+ac_breaker_1ph,per_system,1145.89,автоматический выключатель 2P C32,data/equipment/offers.csv (ЭТМ),
+ac_breaker_3ph,per_system,2913.97,автоматический выключатель 4P C32,data/equipment/offers.csv (ЭТМ),
+ac_spd_1ph,per_system,2363.37,УЗИП переменного тока 1P+N тип 2,data/equipment/offers.csv (ЭТМ),
+ac_spd_3ph,per_system,4726.52,УЗИП переменного тока 3P+N тип 2,data/equipment/offers.csv (ЭТМ),
+ac_box,per_system,1125.39,бокс навесной на 8 модулей IP65,data/equipment/offers.csv (ЭТМ),
+delivery,per_system,5000.0,доставка,scripts/estimate_capex.py (допущение),допущение: у продавцов доставка считается отдельно
+meter,per_system,0.0,прибор учёта ставит сетевая организация,522-ФЗ: приборы учёта у граждан с 01.07.2020 ставит сетевая организация (scripts/estimate_capex.py),ставка С8 не найдена — если счётчик меняют за счёт заявителя
+labour_share,share_of_equipment,0.2,"монтаж и пусконаладка 15–25 % от стоимости комплекта, середина",data/kp_responses.csv (Экопроект-Энерго 20.10.2026),границы 0.15 и 0.25 — диапазон цены
+grid_connection_c1,per_system,21183.0,"ставка С1 17 363,37 ₽ + НДС 22 %",приказ ДГРТ № 19/2025-э (data/capex_components.csv),плата = min(С1; 11 470 ₽ × кВт)
+grid_connection_per_kw,per_kw,11470.0,льготная ставка за 1 кВт с НДС,приказ ДГРТ № 19/2025-э (data/capex_components.csv),
+dc_system_max_v,volts,1000.0,предел напряжения цепочки по УЗИП и кабелю,паспорт УЗИП РИФ-Э-II 1000DC; солнечный кабель PV-1F,цепочка в мороз не выше 1000 В даже у инвертора с входом 1100 В

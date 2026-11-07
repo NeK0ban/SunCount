@@ -37,10 +37,28 @@ def test_catalog_complete():
     assert len(catalog.panels()) >= 3 and len(catalog.inverters()) >= 3
     for p in catalog.panels():
         assert p.price_rub > 0 and p.pmax_w > 0 and p.gamma_pmax_pct_c < 0 and p.area_m2 > 2
-        assert p.price_url.startswith("http") and p.datasheet_url.startswith("http")
+        assert p.datasheet_url.startswith("http")
     for i in catalog.inverters():
         assert i.price_rub > 0 and i.max_pv_kw >= i.ac_kw and i.mppt_min_v < i.mppt_max_v <= i.max_dc_v
-        assert i.phases in (1, 3) and i.price_url.startswith("http") and i.datasheet_url.startswith("http")
+        assert i.phases in (1, 3) and i.datasheet_url.startswith("http")
+
+
+def test_prices_only_from_verified_sites_without_discounts():
+    """Цены каталога — медиана обычных цен (без скидок) с сайтов из docs/equipment_sources.md."""
+    offers = pd.read_csv(DATA / "equipment" / "offers.csv", encoding="utf-8-sig")
+    sources = (DATA.parent / "docs" / "equipment_sources.md").read_text(encoding="utf-8")
+    for _, o in offers.iterrows():
+        domain = o.url.split("/")[2].removeprefix("www.")
+        assert domain in sources or domain.startswith("xn--80aaabwwhjb3dj"), f"сайт {domain} не в списке проверенных"
+        if not pd.isna(o.price_sale_rub):
+            assert o.price_regular_rub > o.price_sale_rub   # в расчёт идёт цена до скидки
+    used = offers[offers.used == "yes"]
+    for item in list(catalog.panels()) + list(catalog.inverters()):
+        cid = getattr(item, "panel_id", None) or item.inverter_id
+        rows = used[used.catalog_id == cid]
+        assert len(rows), f"{cid}: нет предложений с проверенных сайтов"
+        per_seller = rows.groupby("seller").price_regular_rub.min()
+        assert item.price_rub == pytest.approx(per_seller.median(), abs=1)
 
 
 def test_weather():

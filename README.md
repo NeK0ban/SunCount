@@ -10,7 +10,7 @@
 - `docs/grant/` — материалы для заявки на грант: обзор калькуляторов, монетизация, научная проблема, литература, патентный поиск
 - `data/` — исходные данные с источниками и датами (тарифы, цены выкупа, КП на оборудование)
 - `src/config/` — конфигуратор (мастер-ТЗ 5.0): `catalog.py` (каталог `data/equipment/`), `weather.py` (типичный метеогод PVGIS `data/raw/pvgis/*_tmy.json`), `pv_yield.py` (энергорасчёт по паспорту панели, pvlib), `configurator.py` (перебор, ограничения, смета, выбор)
-- `data/equipment/` — каталог: панели и инверторы с паспортами и ценами продавцов, прочие статьи сметы
+- `data/equipment/` — каталог: панели и инверторы с паспортами, прочие статьи сметы; цены — только с проверенных сайтов из [docs/equipment_sources.md](docs/equipment_sources.md), без скидок, все предложения — `offers.csv`
 - `src/econ/exchange.py` — формат обмена с командой 1 (раздел 4 ТЗ) + условные данные
 - `src/econ/model.py` — экономическая модель (эффект, простой и дисконтированный срок окупаемости)
 - `src/econ/api.py` — единая точка входа модели для веб-сервиса, аналитики и тестов: `evaluate`, `recommend`, `evaluate_tz`
@@ -42,6 +42,7 @@ python scripts/run_real.py              # окупаемость на портр
 python scripts/heatmap_real.py          # тепловая карта на данных команды 1 → results/heatmap_real*.csv/png
 python scripts/export_excel.py          # после всех расчётов: SunCount_data.xlsx
 python scripts/make_interim_report.py   # промежуточный отчёт → reports/SunCount_interim_report.pdf
+python scripts/build_equipment_prices.py  # цены каталога из data/equipment/offers.csv (только проверенные сайты, без скидок)
 python scripts/validate_yield.py       # энергорасчёт против PVGIS → results/yield_validation.csv
 python scripts/configurator_examples.py  # подбор на портретах команды 1 → results/config_examples.csv
 python scripts/make_scheme.py          # схема решения → reports/scheme/SunCount_scheme.png

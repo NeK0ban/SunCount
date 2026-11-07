@@ -107,7 +107,9 @@ def string_limits(panel: Panel, inv: Inverter, city: str) -> tuple[int, int]:
     t_min = design_min_temp(city)
     voc_cold = panel.voc_v * (1 + panel.beta_voc_pct_c / 100 * (t_min - 25))
     vmp_hot = panel.vmp_v * (1 + panel.beta_voc_pct_c / 100 * (T_CELL_HOT_C - 25))   # β(Voc) как оценка β(Vmp)
-    l_max = min(int(inv.max_dc_v // voc_cold), int(inv.mppt_max_v // panel.vmp_v))
+    # верхний предел — вход инвертора и 1000 В системы постоянного тока (УЗИП и кабель, data/equipment/bos.csv)
+    v_max = min(inv.max_dc_v, bos().get("dc_system_max_v", inv.max_dc_v))
+    l_max = min(int(v_max // voc_cold), int(inv.mppt_max_v // panel.vmp_v))
     l_min = int(np.ceil(inv.mppt_min_v / vmp_hot))
     return l_min, l_max
 
@@ -127,20 +129,29 @@ def layout(panel: Panel, n: int, inv: Inverter, city: str) -> tuple | None:
 
 # ----------------------------------------------------------------- смета
 def bill_of_materials(panel: Panel, n: int, inv: Inverter, strings: tuple) -> tuple[list, float, float, float]:
-    """Смета: оборудование, материалы, монтаж (15–25 % от оборудования, база 20 %), подключение к сети."""
+    """Смета: оборудование, материалы, монтаж (15–25 % от оборудования, база 20 %), подключение к сети.
+
+    Цены — из data/equipment (проверенные магазины, обычные цены без скидок; docs/equipment_sources.md).
+    Предохранители цепочек не ставятся: на каждом входе MPPT одна цепочка, а по IEC 62548 предохранители
+    обязательны при трёх и более параллельных цепочках."""
     b = bos()
     k = len(strings)
+    three = inv.phases == 3
+    spd_dc, spd_dc_name = ((b["dc_spd_600"], "на вход MPPT, 600 В") if inv.max_dc_v <= 600 else
+                           (b["dc_spd_1000"], "на вход MPPT, 1000 В"))
     items = [
         ("Панели", panel.name, n, panel.price_rub),
         ("Инвертор", inv.name, 1, inv.price_rub),
         ("Крепёж на кровлю", "комплект на одну панель", n, b["mounting"]),
         ("Кабель солнечный 4 мм²", f"{k} цеп. × {b['dc_cable_m_per_string']:.0f} м", k * b["dc_cable_m_per_string"], b["dc_cable"]),
         ("Разъёмы MC4", "пары", 2 * k + 2, b["mc4"]),
-        ("Защита DC: УЗИП", "на каждый вход MPPT", k, b["dc_spd"]),
-        ("Защита DC: предохранители", "на каждую цепочку, + и −", 2 * k, b["dc_fuse"]),
-        ("Защита AC: автомат, УЗИП, бокс", f"{inv.phases}-фазная схема", 1,
-         b["ac_protection_3ph"] if inv.phases == 3 else b["ac_protection_1ph"]),
-        ("Доставка", "", 1, b["delivery"]),
+        ("УЗИП постоянного тока", spd_dc_name, k, spd_dc),
+        ("Автомат переменного тока", "4P C32" if three else "2P C32", 1,
+         b["ac_breaker_3ph"] if three else b["ac_breaker_1ph"]),
+        ("УЗИП переменного тока", "3P+N, тип 2" if three else "1P+N, тип 2", 1,
+         b["ac_spd_3ph"] if three else b["ac_spd_1ph"]),
+        ("Бокс для защиты", "навесной, 8 модулей, IP65", 1, b["ac_box"]),
+        ("Доставка", "допущение", 1, b["delivery"]),
     ]
     rows = [(name, model, qty, price, qty * price) for name, model, qty, price in items]
     equipment = sum(r[4] for r in rows)
@@ -282,7 +293,7 @@ def binding_constraint(best: Config, house: House) -> str:
     n_roof = int(house.roof_area_m2 // best.panel.area_m2)
     if best.n_panels >= n_roof:
         return (f"площадь крыши: на {house.roof_area_m2:g} м² помещается не больше {n_roof} панелей "
-                f"{best.panel.brand} ({best.panel.area_m2:.2f} м² каждая)")
+                f"{best.panel.brand} ({str(round(best.panel.area_m2, 2)).replace('.', ',')} м² каждая)")
     free = House(**{**house.__dict__, "budget_rub": None})
     bigger = [c for c in candidates(free, [best.panel.panel_id]) if c.n_panels > best.n_panels]
     if not bigger:
