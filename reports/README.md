@@ -26,6 +26,10 @@
 
 `SunCount_pasport_proekta.xlsx` — вопрос, тема, цели, ссылки, команда и роли.
 
+## scheme/ — схема решения
+
+`SunCount_scheme.png` — схема конфигуратора (мастер-ТЗ 5.0, 08.11.2026): что сообщает пользователь, что знает сервис, подбор, что получает пользователь. Собирает `python scripts/make_scheme.py`.
+
 ## weekly/ — недельные отчёты
 
 `SunCount_nedelya_<неделя>.docx` — готовые отчёты; текст правится в `weekly/src/<неделя>.md`, docx собирает `python scripts/make_weekly_report.py`.

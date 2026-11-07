@@ -1,6 +1,6 @@
 # SunCount — система поддержки принятия решений по выбору домашней СЭС
 
-Адыгея и Краснодарский край. Команда 2: экономика и аналитический веб-сервис.
+Адыгея и Краснодарский край. Команда 2: конфигурация станции, правила микрогенерации и экономика. С 08.11.2026 (мастер-ТЗ 5.0) сервис — конфигуратор: подбирает под дом модели и число панелей, инвертор, смету «под ключ» и срок окупаемости. Проблема, актуальность и решение — [docs/concept.md](docs/concept.md), методика — [docs/configurator.md](docs/configurator.md), схема — `reports/scheme/SunCount_scheme.png`.
 
 Мастер-ТЗ команды — всё в одном документе (проект, архитектура, задачи каждого участника, сроки): [docs/MASTER_TZ.md](docs/MASTER_TZ.md)
 План и статусы задач: [PLAN.md](PLAN.md)
@@ -9,6 +9,8 @@
 - `docs/` — тексты для отчёта (нормативка, методика)
 - `docs/grant/` — материалы для заявки на грант: обзор калькуляторов, монетизация, научная проблема, литература, патентный поиск
 - `data/` — исходные данные с источниками и датами (тарифы, цены выкупа, КП на оборудование)
+- `src/config/` — конфигуратор (мастер-ТЗ 5.0): `catalog.py` (каталог `data/equipment/`), `weather.py` (типичный метеогод PVGIS `data/raw/pvgis/*_tmy.json`), `pv_yield.py` (энергорасчёт по паспорту панели, pvlib), `configurator.py` (перебор, ограничения, смета, выбор)
+- `data/equipment/` — каталог: панели и инверторы с паспортами и ценами продавцов, прочие статьи сметы
 - `src/econ/exchange.py` — формат обмена с командой 1 (раздел 4 ТЗ) + условные данные
 - `src/econ/model.py` — экономическая модель (эффект, простой и дисконтированный срок окупаемости)
 - `src/econ/api.py` — единая точка входа модели для веб-сервиса, аналитики и тестов: `evaluate`, `recommend`, `evaluate_tz`
@@ -40,6 +42,9 @@ python scripts/run_real.py              # окупаемость на портр
 python scripts/heatmap_real.py          # тепловая карта на данных команды 1 → results/heatmap_real*.csv/png
 python scripts/export_excel.py          # после всех расчётов: SunCount_data.xlsx
 python scripts/make_interim_report.py   # промежуточный отчёт → reports/SunCount_interim_report.pdf
+python scripts/validate_yield.py       # энергорасчёт против PVGIS → results/yield_validation.csv
+python scripts/configurator_examples.py  # подбор на портретах команды 1 → results/config_examples.csv
+python scripts/make_scheme.py          # схема решения → reports/scheme/SunCount_scheme.png
 python -m pytest -q                     # автотесты (tests/)
 python -m streamlit run app/streamlit_app.py   # веб-сервис SunCount → http://localhost:8501
 ```

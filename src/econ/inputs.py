@@ -50,7 +50,14 @@ def _ranges() -> pd.DataFrame:
 
 
 def zone_prices(plan: TariffPlan) -> dict[str, dict[str, float]]:
-    """{'I': {'day': p, 'night': p}, 'II': ..., 'III': ...}, ₽/кВт·ч."""
+    """{'I': {'day': p, 'night': p}, 'II': ..., 'III': ...}, ₽/кВт·ч.
+
+    Возвращает копию: изменения у вызывающего не портят кеш (кеш нужен конфигуратору — сотни расчётов подряд)."""
+    return {rng: dict(z) for rng, z in _zone_prices(plan).items()}
+
+
+@lru_cache(maxsize=64)
+def _zone_prices(plan: TariffPlan) -> dict[str, dict[str, float]]:
     t = _tariffs()
     t = t[(t.date_from == plan.date_from) & (t.category == plan.price_category) & (t.tariff_type == plan.tariff_type)]
     if plan.tariff_type not in ("single", "two_zone") or t.empty:
@@ -70,6 +77,7 @@ def zone_prices(plan: TariffPlan) -> dict[str, dict[str, float]]:
     return out
 
 
+@lru_cache(maxsize=1024)
 def range_bounds(plan: TariffPlan, month: int) -> tuple[float, float]:
     """Границы I и II диапазонов, кВт·ч/мес, для данного месяца."""
     r = _ranges()

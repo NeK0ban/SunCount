@@ -1,0 +1,7 @@
+﻿city,panel_id,pvgis_kwh_per_kw_mean,ours_same_weather_kwh_per_kw,diff_mean_pct,diff_min_pct,diff_max_pct,poa_tmy_kwh_m2,poa_mean_2005_2023_kwh_m2,tmy_vs_mean_pct,ours_tmy_kwh_per_kw
+krasnodar,jinko_590,1224.0,1282.7,4.79,4.35,5.21,1475.2,1576.8,-6.44,1196.8
+krasnodar,luxen_585,1224.0,1282.5,4.78,4.34,5.19,1475.2,1576.8,-6.44,1196.6
+krasnodar,resun_590,1224.0,1281.6,4.7,4.28,5.09,1475.2,1576.8,-6.44,1195.7
+maykop,jinko_590,1210.7,1265.8,4.55,4.07,4.97,1534.0,1557.4,-1.5,1249.1
+maykop,luxen_585,1210.7,1265.6,4.53,4.06,4.95,1534.0,1557.4,-1.5,1248.9
+maykop,resun_590,1210.7,1264.7,4.45,4.01,4.85,1534.0,1557.4,-1.5,1248.1

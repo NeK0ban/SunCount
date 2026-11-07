@@ -1,15 +1,13 @@
-"""Тесты страницы веб-сервиса через streamlit.testing (без браузера): режимы ввода T4.2 работают без ошибок.
+"""Тесты страницы веб-сервиса через streamlit.testing (без браузера): ввод и вывод конфигуратора.
 
 Запуск из корня репозитория: python -m pytest -q
 """
-import pandas as pd
 import pytest
 from streamlit.testing.v1 import AppTest
 
 from src.econ.inputs import DATA
 
 APP = str(DATA.parent / "app" / "streamlit_app.py")
-REAL = pd.read_csv(DATA.parent / "results" / "real_payback.csv", encoding="utf-8-sig")
 
 
 def run(at: AppTest) -> AppTest:
@@ -28,13 +26,15 @@ def app():
     return run(AppTest.from_file(APP, default_timeout=60))
 
 
-def test_default_portrait(app):
-    """По умолчанию — готовый портрет «Семья днём на работе», Краснодар, город, одноставочный: как в real_payback."""
-    row = REAL[(REAL.profile_id == "day_absent") & (REAL.city == "krasnodar")
-               & (REAL.tariff == "Город, одноставочный") & REAL.recommended].iloc[0]
-    assert metric(app, "Мощность станции") == f"{int(row.pv_kw)} кВт"
-    assert metric(app, "Срок окупаемости").startswith(f"{row.simple_payback:.1f}".replace(".", ","))
-    assert not app.slider   # в режиме портрета ползунка доли самопотребления нет
+def radio(at, label):
+    return next(r for r in at.radio if r.label == label)
+
+
+def test_default(app):
+    assert {m.label for m in app.metric} == {"Мощность панелей", "Цена «под ключ»", "Срок окупаемости", "Эффект в год"}
+    assert any("Рекомендуем" in m.value for m in app.markdown)
+    assert not app.slider or all(s.label != "Доля самопотребления, %" for s in app.slider)   # ползунка больше нет
+    assert len(app.dataframe) == 2   # смета и другие варианты
 
 
 @pytest.mark.parametrize("pid", ["day_absent", "home_all_day", "ac", "el_heating"])
@@ -45,33 +45,37 @@ def test_all_portraits(app, pid, tariff):
     sb["Портрет домохозяйства"].set_value(pid)
     run(app)
     info = " ".join(i.value for i in app.info)
-    reduced_note = "сниженному тарифу" in info
-    assert reduced_note == (pid == "el_heating" and tariff.startswith("city"))
+    assert ("сниженному тарифу" in info) == (pid == "el_heating" and tariff.startswith("city"))
 
 
-def test_custom_mode_heating_hint_and_monthly(app):
-    app.radio[0].set_value("custom")
+def test_custom_mode(app):
+    radio(app, "Данные о потреблении").set_value("custom")
     run(app)
     app.multiselect[0].set_value(["el_heating"])
     run(app)
-    assert any("по месяцам" in w.value for w in app.warning)          # подсказка для электроотопления
-    assert any("сниженному тарифу" in i.value for i in app.info)      # пометка о сниженном тарифе
-    radios = {r.label: r for r in app.radio}
-    radios["Потребление"].set_value("months")
+    assert any("по месяцам" in w.value for w in app.warning)
+    assert any("сниженному тарифу" in i.value for i in app.info)
+    radio(app, "Как ввести потребление").set_value("months")
     run(app)
     months = [n for n in app.number_input if n.key and n.key.startswith("month_")]
     assert len(months) == 12
-    assert not any("по месяцам" in w.value for w in app.warning)
     months[0].set_value(2000)
     run(app)
-    assert any("625 кВт·ч" in m.value for m in app.markdown)   # среднее (2000 + 11 × 500) / 12 во фразе-выводе
+    assert not any("по месяцам" in w.value for w in app.warning)
 
 
-def test_custom_capex(app):
+def test_three_phase_big_roof(app):
+    radio(app, "Ввод в дом").set_value(3)
+    radio(app, "Что важнее").set_value("payback")
+    next(n for n in app.number_input if n.label.startswith("Полезная площадь")).set_value(80)
+    run(app)
+    kw = float(metric(app, "Мощность панелей").split()[0].replace(",", "."))
+    assert kw > 6.5   # трёхфазный ввод открывает инверторы мощнее 5 кВт
+
+
+def test_budget_too_small(app):
     app.checkbox[0].check()
     run(app)
-    caps = {n.key: n for n in app.number_input if n.key and n.key.startswith("capex_")}
-    assert [caps[f"capex_{kw}"].value for kw in (3, 5, 10)] == [193_000, 291_000, 584_000]
-    caps["capex_5"].set_value(100_000)
+    next(n for n in app.number_input if n.label.startswith("Бюджет")).set_value(60_000)
     run(app)
-    assert metric(app, "Мощность станции") == "5 кВт"
+    assert any("Ни одна станция" in w.value for w in app.warning)
