@@ -4,7 +4,7 @@
 берётся зачёркнутая, т. е. цена до скидки). У модели несколько продавцов — в каталог идёт медиана их обычных цен,
 по одной цене на продавца. Предложения с used = no (нет паспорта, неясная цена) в расчёт не идут.
 
-Вход: data/equipment/offers.csv. Выход: колонки price_rub, price_note, price_url, price_accessed в
+Вход: data/equipment/offers.csv. Выход: колонки price_rub, price_note, price_url, price_accessed (у панелей ещё seller и city) в
 data/equipment/panels.csv и inverters.csv; price_rub в data/equipment/bos.csv для статей из offers.csv.
 Запуск: python scripts/build_equipment_prices.py
 """
@@ -27,10 +27,11 @@ if used.price_regular_rub.isna().any():
     raise ValueError("В offers.csv есть используемое предложение без обычной цены")
 # одна цена на продавца (если у продавца несколько строк одной модели — берём меньшую обычную цену)
 per_seller = used.groupby(["kind", "catalog_id", "seller"], as_index=False).agg(
-    price=("price_regular_rub", "min"), accessed=("accessed", "max"))
+    price=("price_regular_rub", "min"), accessed=("accessed", "max"), city=("city", "first"))
 summary = per_seller.groupby(["kind", "catalog_id"]).agg(
     price=("price", "median"), n=("seller", "count"), low=("price", "min"), high=("price", "max"),
-    sellers=("seller", lambda s: "; ".join(x.split(" (")[0] for x in s)), accessed=("accessed", "max"))
+    sellers=("seller", lambda s: "; ".join(x.split(" (")[0] for x in s)), accessed=("accessed", "max"),
+    cities=("city", lambda s: "; ".join(dict.fromkeys(str(x) for x in s))))
 
 for file, kind in (("panels.csv", "panel"), ("inverters.csv", "inverter")):
     t = pd.read_csv(EQ / file, encoding="utf-8-sig", dtype={"price_note": str, "price_url": str, "price_accessed": str})
@@ -45,6 +46,9 @@ for file, kind in (("panels.csv", "panel"), ("inverters.csv", "inverter")):
                                  if s.n > 1 else f"обычная цена продавца {s.sellers}")
         t.at[i, "price_url"] = OFFERS
         t.at[i, "price_accessed"] = s.accessed
+        if "seller" in t.columns:   # у панелей продавец и город записаны в каталоге — берём из предложений
+            t.at[i, "seller"] = s.sellers
+            t.at[i, "city"] = s.cities
     t.to_csv(EQ / file, index=False, encoding="utf-8-sig")
     print(f"{file}: " + ", ".join(f"{r[id_col]} {fmt(r.price_rub)} ₽" for _, r in t.iterrows()))
 

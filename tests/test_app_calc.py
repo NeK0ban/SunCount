@@ -4,7 +4,7 @@
 """
 import pytest
 
-from app.calc import get_plan, own_load, portrait_load, reduced_by_appliances, run_configurator
+from app.calc import average_day, get_plan, own_load, portrait_load, reduced_by_appliances, run_configurator
 from app.texts import PORTRAITS, TARIFFS
 
 
@@ -66,3 +66,19 @@ def test_run_configurator_output():
     assert all(best["npv_rub"] >= c["npv_rub"] for c in r["configs"])
     with pytest.raises(ValueError):
         run_configurator("maykop", "rural_zones", portrait_load("ac", "maykop"), goal="cheapest")
+
+
+def test_average_day_matches_station_month():
+    """Средние сутки для графика лето/зима (T4.4): сумма × число дней = выработка и потребление месяца,
+    самопотребление не больше выработки и потребления в каждый час."""
+    load = portrait_load("day_absent", "krasnodar")
+    best = run_configurator("krasnodar", "city_single", load)["configs"][0]
+    july = average_day(best, "krasnodar", load, 7)
+    jan = average_day(best, "krasnodar", load, 1)
+    assert all(len(v) == 24 for v in july.values())
+    assert sum(july["load"]) * 31 == pytest.approx(sum(load[4344:5088]), rel=1e-9)   # 1 июля 00:00 — час 4344
+    assert all(s <= min(g, ld) + 1e-12 for s, g, ld in zip(july["self"], july["gen"], july["load"]))
+    assert sum(july["gen"]) > 2 * sum(jan["gen"])        # летом выработка больше в разы
+    assert max(range(24), key=lambda h: july["gen"][h]) in (11, 12, 13)   # пик около полудня по местному времени
+    with pytest.raises(ValueError):
+        average_day(best, "krasnodar", load, 13)

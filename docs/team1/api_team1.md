@@ -30,16 +30,17 @@ def simulate(load_8760: np.ndarray,           # 8760 неотрицательн�
 - `simulate` считает почасово: самопотребление = min(выработка, потребление); день 7:00–22:59, ночь 23:00–6:59. Балансы проверяются внутри функции.
 - Ошибки ввода — `ValueError` с понятным текстом (неизвестный город, не 12 месяцев, отрицательные значения, неизвестный прибор).
 
-## Пример (режим «Свои данные» в веб-сервисе, T4.6)
+## Как функции используются после перехода к конфигуратору (08.11.2026)
+
+Конфигуратору нужен только почасовой профиль потребления: готовый портрет из `data/hourly_profiles/` или `build_profile` по квитанциям. Выработку он считает сам — по паспорту панели на типичном метеогоде PVGIS (`docs/method/configurator.md`). Поэтому `simulate` и ряды выработки команды 1 (`data/hourly_solar/`, `data/solar_reference/`) в веб-сервисе больше не участвуют. Они нужны только для материалов этапа 2 на 3, 5 и 10 кВт: `scripts/run_real.py`, тепловая карта, гипотеза 2.
 
 ```python
-from src.econ.api import recommend
-from src.energy.api import build_profile, simulate
+from app.calc import average_day, own_load, run_configurator
 
-load = build_profile([500] * 12, "home_all_day", {"ac"}, "krasnodar")
-months_by_kw = {kw: simulate(load, kw, "krasnodar")[0] for kw in (3, 5, 10)}
-best_kw, results = recommend(months_by_kw, plan)                  # plan — TariffPlan выбранного тарифа
-months, load_8760, gen_8760 = simulate(load, best_kw, "krasnodar")  # почасовые ряды — для графика T4.4
+load = own_load([500] * 12, "home_all_day", ("ac",), "krasnodar")   # внутри — build_profile команды 1
+res = run_configurator("krasnodar", "city_zones", load, appliances=("ac",), roof_area_m2=40, phases=1)
+best = res["configs"][0]                                             # рекомендуемая станция со сметой
+july = average_day(best, "krasnodar", load, 7)                       # средние сутки июля для графика T4.4
 ```
 
 Если выбран прибор «электроотопление», тариф пониженный с диапазонами отопительного периода: `TariffPlan(..., "reduced", ..., ("reduced_heating", "reduced_heating_nostove"))`.

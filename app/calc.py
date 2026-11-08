@@ -18,7 +18,9 @@ if str(ROOT) not in sys.path:
 
 import pandas as pd  # noqa: E402
 
-from src.config.configurator import GOALS, House, binding_constraint, configure  # noqa: E402
+from src.config.catalog import inverter as catalog_inverter, panel as catalog_panel  # noqa: E402
+from src.config.configurator import GOALS, House, binding_constraint, configure, hourly_ac  # noqa: E402
+from src.config.weather import local_calendar  # noqa: E402
 from src.econ.inputs import TariffPlan  # noqa: E402
 from src.energy.api import build_profile  # noqa: E402
 from app.texts import TARIFFS  # noqa: E402
@@ -104,6 +106,26 @@ def run_configurator(city: str, tariff_key: str, load: tuple, appliances=(), roo
         })
     return {"configs": out, "constraint": binding_constraint(best[0], house) if best else ""}
 
+
+def average_day(config: dict, city: str, load: tuple, month: int, tilt: float = 30, azimuth: float = 180,
+                shading: str = "none") -> dict:
+    """Средние сутки месяца для графика «лето / зима» (T4.4): выработка станции, потребление дома и
+    самопотребление по часам 0–23, кВт·ч в час. config — вариант из run_configurator (нужны panel_id,
+    n_panels, inverter_id, strings); остальные параметры — те же, что ушли в run_configurator.
+    Самопотребление считается по каждому часу года, а потом усредняется: min(выработка, потребление) часа."""
+    if not 1 <= month <= 12:
+        raise ValueError("Месяц: от 1 до 12")
+    house = House(city=city, plan=next(iter(TARIFFS.values()))["plan"], load_8760=tuple(load), tilt=tilt,
+                  azimuth=azimuth, shading=shading)
+    gen, _ = hourly_ac(catalog_panel(config["panel_id"]), int(config["n_panels"]),
+                       catalog_inverter(config["inverter_id"]), tuple(config["strings"]), house)
+    cal = local_calendar()
+    sel = (cal.month == month).to_numpy()
+    hours = cal.hour.to_numpy()[sel]
+    frame = pd.DataFrame({"hour": hours, "gen": gen[sel], "load": pd.Series(load).to_numpy()[sel]})
+    frame["self"] = frame[["gen", "load"]].min(axis=1)
+    day = frame.groupby("hour")[["gen", "load", "self"]].mean()
+    return {k: [float(v) for v in day[k]] for k in ("gen", "load", "self")}
 
 @lru_cache(maxsize=1)
 def data_versions() -> dict:
