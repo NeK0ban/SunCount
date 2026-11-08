@@ -7,7 +7,7 @@
 | Файл | Что это | Кто делает |
 |---|---|---|
 | `SunCount_interim_report.pdf` | Промежуточный отчёт; собирается скриптом `python scripts/make_interim_report.py` | Р1 |
-| `SunCount_interim_talk.pptx` | Промежуточный доклад (12 слайдов, шаблон АГУ, текст докладчиков — в заметках); собирается скриптом `python scripts/make_interim_talk.py`, скриншот веб-сервиса — `interim_talk/web_service.png` | Р5 (черновик — Р1) |
+| `SunCount_interim_talk.pptx` | Промежуточный доклад (11 слайдов, шаблон АГУ, текст докладчиков — в заметках); собирается скриптом `python scripts/make_interim_talk.py`, скриншот веб-сервиса — `interim_talk/web_service.png` | Р5 (черновик — Р1) |
 | `SunCount_final_report.docx` *(будет)* | Итоговый отчёт | Р5 |
 | `SunCount_final_talk.pptx` *(будет)* | Итоговая презентация | Р5 |
 
@@ -28,7 +28,7 @@
 
 ## scheme/ — схема решения
 
-`SunCount_scheme.png` — схема конфигуратора (мастер-ТЗ 5.0, 08.11.2026): что сообщает пользователь, что знает сервис, подбор, что получает пользователь. Собирает `python scripts/make_scheme.py`.
+`SunCount_scheme.pptx` и `SunCount_scheme.png` — схема решения (мастер-ТЗ 5.0, переделана 08.11.2026 фигурами PowerPoint: её можно править и вставлять в презентации; та же схема — на слайде доклада): что сообщает пользователь, что знает сервис, подбор, что получает пользователь. Собирает `python scripts/make_scheme.py`.
 
 ## weekly/ — недельные отчёты
 

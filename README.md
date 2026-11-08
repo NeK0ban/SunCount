@@ -43,7 +43,7 @@ python scripts/make_interim_report.py   # промежуточный отчёт 
 python scripts/build_equipment_prices.py  # цены каталога из data/equipment/offers.csv (только проверенные сайты, без скидок)
 python scripts/validate_yield.py       # энергорасчёт против PVGIS → results/yield_validation.csv
 python scripts/configurator_examples.py  # подбор на портретах команды 1 → results/config_examples.csv
-python scripts/make_scheme.py          # схема решения → reports/scheme/SunCount_scheme.png
+python scripts/make_scheme.py          # схема решения → reports/scheme/SunCount_scheme.pptx и .png (PNG — через PowerPoint)
 python scripts/make_interim_talk.py    # промежуточный доклад → reports/SunCount_interim_talk.pptx
 python -m pytest -q                     # автотесты (tests/)
 python -m streamlit run app/streamlit_app.py   # веб-сервис SunCount → http://localhost:8501
