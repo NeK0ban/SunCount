@@ -2,7 +2,7 @@
 
 Годовой файл:   одна запись = «портрет домохозяйства × мощность СЭС» (EnergyMetrics).
 Помесячный файл: те же поля + month (MonthlyMetrics) — нужен для диапазонов тарифа и
-сезонной цены выкупа; см. docs/exchange_format.md.
+сезонной цены выкупа; см. docs/team1/exchange_format.md.
 Пока реальных профилей нет, make_stub() / make_stub_monthly() дают условные значения в том же формате.
 """
 from __future__ import annotations

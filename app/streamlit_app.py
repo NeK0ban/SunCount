@@ -187,6 +187,6 @@ st.caption("Выделен рекомендуемый вариант. Диско
 
 with st.expander("Как считается"):
     st.write(HOW_IT_WORKS)
-    st.markdown(f"Методика, параметры и источники данных: [docs/configurator.md]({METHOD_URL})")
+    st.markdown(f"Методика, параметры и источники данных: [docs/method/configurator.md]({METHOD_URL})")
 
 st.caption(footnote(load_versions()))

@@ -5,7 +5,7 @@ import math
 from src.econ.inputs import TariffPlan
 from src.econ.params import LIFETIME_YEARS
 
-METHOD_URL = "https://github.com/NeK0ban/SunCount/blob/main/docs/configurator.md"
+METHOD_URL = "https://github.com/NeK0ban/SunCount/blob/main/docs/method/configurator.md"
 INF = float("inf")
 NB = " "   # неразрывный пробел: число не отрывается от единицы и не рвётся между разрядами
 
@@ -85,7 +85,7 @@ TARIFF_NOTE = ("Село — сельское население. В город�
 # Режимы ввода (мастер-ТЗ, T4.2)
 MODES = {"portrait": "Готовый портрет", "custom": "Свои данные"}
 
-# Портреты команды 1 (docs/exchange_format.md). pump_farm команда 1 в сдачу не включила (письмо от 04.11.2026)
+# Портреты команды 1 (docs/team1/exchange_format.md). pump_farm команда 1 в сдачу не включила (письмо от 04.11.2026)
 PORTRAITS = {
     "day_absent": "Семья днём на работе / учёбе",
     "home_all_day": "Кто-то дома весь день",

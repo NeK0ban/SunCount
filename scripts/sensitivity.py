@@ -321,7 +321,7 @@ def tornado(code: str, plan: TariffPlan) -> None:
              f"«не окуп.» — не окупается за базовый срок службы {HORIZON} лет; такие параметры отсортированы "
              "по видимой длине полосы (до горизонта).",
              fontsize=8.5, color="#333333")
-    fig.text(0.01, 0.02, "Источник: расчёт SunCount, данные — docs/assumptions.md",
+    fig.text(0.01, 0.02, "Источник: расчёт SunCount, данные — docs/method/assumptions.md",
              fontsize=8.5, color="#555555")
     fig.tight_layout(rect=(0, 0.13, 1, 0.95))
     fig.savefig(out / f"tornado_{code}.png", dpi=200, bbox_inches="tight")

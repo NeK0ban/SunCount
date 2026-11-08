@@ -4,7 +4,7 @@
 из data/energy_metrics_monthly.csv через src/econ/api.py (evaluate + recommend — метод T1.6):
 группировка по (profile_id, city, pv_kw) → 12 записей → для каждого из 4 тарифов, рекомендуемая
 мощность — api.recommend по трём мощностям (3, 5, 10 кВт). Данные проверены в
-docs/team1_data_check.md (4 портрета × 2 города × 3 мощности, все 12 месяцев).
+docs/team1/team1_data_check.md (4 портрета × 2 города × 3 мощности, все 12 месяцев).
 
 Что строится (мастер-ТЗ, T3.3):
   results/heatmap_real_<город>.png        — основная карта: простой срок рекомендуемой мощности,
@@ -181,7 +181,7 @@ def heatmap(city_id: str, metric: str, pv_kw: int | None = None) -> Path:
                  f"шкала {VMIN}…{vmax} лет общая для всех карт", fontsize=11)
     fig.text(0.01, 0.045, "Дом с электроотоплением и в городе платит по пониженному тарифу (с диапазонами "
              "отопительного периода), поэтому для него — только столбцы «Село».", fontsize=8, color="#333333")
-    fig.text(0.01, 0.015, "Источник: расчёт SunCount, данные — docs/assumptions.md",
+    fig.text(0.01, 0.015, "Источник: расчёт SunCount, данные — docs/method/assumptions.md",
              fontsize=8.5, color="#555555")
     fig.tight_layout(rect=(0, 0.08, 1, 1.0))
 

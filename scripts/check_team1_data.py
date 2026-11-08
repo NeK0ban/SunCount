@@ -18,7 +18,7 @@
 self = min(выработка, нагрузка), покупка днём (7:00–22:59) и ночью; помесячные энергии усредняются по 19 годам,
 доли — из средних энергий. «Типичный год» (каждый час усреднён по годам) завышает самопотребление, потому что
 min() — вогнутая функция; первая версия данных (02.11) была посчитана так.
-Протокол — docs/team1_data_check.md, проверки № 3 и 4.
+Протокол — docs/team1/team1_data_check.md, проверки № 3 и 4.
 
 Запуск: python scripts/check_team1_data.py
 """
@@ -81,7 +81,7 @@ def tz_checks() -> pd.DataFrame:
     a = pd.read_csv(DATA / "energy_metrics.csv")
     m = pd.read_csv(DATA / "energy_metrics_monthly.csv")
     fields = ["profile_id", "city", "pv_kw", "gen_kwh", "load_kwh", "self_kwh", "export_kwh", "import_kwh",
-              "import_day_kwh", "import_night_kwh", "self_share", "coverage"]   # docs/exchange_format.md, раздел 2
+              "import_day_kwh", "import_night_kwh", "self_share", "coverage"]   # docs/team1/exchange_format.md, раздел 2
     keys = ["profile_id", "city", "pv_kw"]
     out = []
 
@@ -89,7 +89,7 @@ def tz_checks() -> pd.DataFrame:
         out.append({"n": n, "check": name, "ok": bool(ok), "note": note})
 
     add(1, "Читается и проходит балансы", True, f"read_csv: {len(annual)} годовых, {len(mon)} помесячных записей")
-    add(2, "Колонки как в docs/exchange_format.md", list(a.columns) == fields and
+    add(2, "Колонки как в docs/team1/exchange_format.md", list(a.columns) == fields and
         sorted(m.columns) == sorted(fields + ["month"]),
         "годовой файл — тот же порядок; в помесячном month стоит после pv_kw (читаем по именам)")
     codes = (set(a.profile_id) <= {"day_absent", "home_all_day", "ac", "el_heating", "pump_farm"}

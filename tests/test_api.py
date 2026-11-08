@@ -1,7 +1,7 @@
 """Тесты единой точки входа src/econ/api.py (T1.4; набор test_api из T5.1 мастер-ТЗ + приёмка T1.4).
 
 Запуск из корня репозитория: python -m pytest -q
-Контрольная точка — docs/decisions.md (31.10.2026; значения на 03.11.2026).
+Контрольная точка — docs/project/decisions.md (31.10.2026; значения на 03.11.2026).
 """
 import math
 from dataclasses import replace

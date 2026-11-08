@@ -44,9 +44,9 @@ def test_catalog_complete():
 
 
 def test_prices_only_from_verified_sites_without_discounts():
-    """Цены каталога — медиана обычных цен (без скидок) с сайтов из docs/equipment_sources.md."""
+    """Цены каталога — медиана обычных цен (без скидок) с сайтов из docs/equipment/equipment_sources.md."""
     offers = pd.read_csv(DATA / "equipment" / "offers.csv", encoding="utf-8-sig")
-    sources = (DATA.parent / "docs" / "equipment_sources.md").read_text(encoding="utf-8")
+    sources = (DATA.parent / "docs" / "equipment" / "equipment_sources.md").read_text(encoding="utf-8")
     for _, o in offers.iterrows():
         domain = o.url.split("/")[2].removeprefix("www.")
         assert domain in sources or domain.startswith("xn--80aaabwwhjb3dj"), f"сайт {domain} не в списке проверенных"
