@@ -1,4 +1,5 @@
-"""Недельный отчёт команды 2: reports/weekly/src/<неделя>.md → reports/weekly/SunCount_nedelya_<неделя>.docx.
+"""Недельный отчёт команды 2: reports/weekly/src/<неделя>.md → reports/weekly/SunCount_nedelya_<неделя>.docx
+(источник с именем вида nedela0911.md — с 09.11.2026 — собирается в reports/weekly/nedela0911.docx).
 
 Текст отчёта правится в markdown-источнике, docx пересобирается этим скриптом. Без аргументов собирает все недели.
 Поддерживаемая разметка: «# » заголовок, «## » и «### » подзаголовки, «- » пункт списка,
@@ -98,7 +99,8 @@ def build(md_path: Path) -> Path:
                 p.paragraph_format.space_before = Pt(8)
             add_runs(p, line)
 
-    out = OUT / f"SunCount_nedelya_{md_path.stem}.docx"
+    name = md_path.stem if md_path.stem.startswith("nedela") else f"SunCount_nedelya_{md_path.stem}"
+    out = OUT / f"{name}.docx"
     doc.save(out)
     return out
 

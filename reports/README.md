@@ -32,4 +32,4 @@
 
 ## weekly/ — недельные отчёты
 
-`SunCount_nedelya_<неделя>.docx` — готовые отчёты; текст правится в `weekly/src/<неделя>.md`, docx собирает `python scripts/make_weekly_report.py`.
+`SunCount_nedelya_<неделя>.docx` (до 08.11) и `nedela<ДДММ>.docx` (с 09.11, ДДММ — понедельник недели, например `nedela0911.docx`) — готовые отчёты; текст правится в `weekly/src/<то же имя>.md`, docx собирает `python scripts/make_weekly_report.py`.
