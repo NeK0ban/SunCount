@@ -31,7 +31,7 @@ for pid in PORTRAITS:
                     "kwp": b["kwp"], "inverter": b["inverter"], "strings": "+".join(map(str, b["strings"])),
                     "capex_rub": round(b["capex_rub"]), "gen_kwh": round(b["gen_kwh"]),
                     "self_share": round(b["self_share"], 1), "export_share": round(b["export_share"], 1),
-                    "simple_payback": round(b["simple_payback"], 2), "disc_payback": round(b["disc_payback"], 2),
+                    "simple_payback": round(b["simple_payback"], 3), "disc_payback": round(b["disc_payback"], 3),
                     "npv_rub": round(b["npv_rub"]), "constraint": r["constraint"],
                 })
 df = pd.DataFrame(rows)

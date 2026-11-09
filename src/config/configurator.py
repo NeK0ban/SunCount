@@ -16,6 +16,9 @@
 Затем — почасовой баланс выработки и потребления, помесячные записи формата обмена и окупаемость той же
 экономической моделью, что и раньше (src/econ: тарифы с диапазонами и зонами суток, цена выкупа по тарифу
 владельца, рост тарифов, деградация, замена инвертора, НДФЛ).
+Расчёты с гарантирующим поставщиком — с помесячным зачётом выдачи против покупки (House.netting=True, по
+умолчанию): так ТНС энерго Кубань считает по типовому договору с владельцем микрогенерации, п. 5.2
+(docs/rules/tns_confirmation.md). netting=False — формула ТЗ курса без зачёта, для сравнения.
 
 Цель подбора:
 - "own" (по умолчанию) — станция для своих нужд: за год вырабатывает не больше, чем потребляет дом
@@ -35,7 +38,7 @@ import numpy as np
 from src.econ.api import INF, evaluate
 from src.econ.exchange import MonthlyMetrics, _record
 from src.econ.inputs import DAY_HOURS, TariffPlan
-from src.econ.model import Scenario, annual_effect_monthly, simple_payback
+from src.econ.model import Scenario, annual_effect_monthly, annual_effect_monthly_net, simple_payback
 from src.econ import params as P
 
 from .catalog import Inverter, Panel, bos, inverters, panels
@@ -63,6 +66,7 @@ class House:
     budget_rub: float | None = None
     goal: str = "own"
     profile_id: str = "custom"
+    netting: bool = True              # помесячный зачёт, как в договоре ТНС (п. 5.2); False — формула ТЗ
 
     def __post_init__(self):
         if len(self.load_8760) != 8760:
@@ -232,12 +236,12 @@ def _economics(c: Config, house: House, load: np.ndarray, full: bool) -> None:
     c.months = monthly_records(gen, load, house, c.kwp)
     if full:
         r = evaluate(c.months, house.plan, c.kwp, capex_rub=c.capex_rub,
-                     scenario=Scenario(inverter_cost_rub=c.inverter.price_rub))
+                     scenario=Scenario(inverter_cost_rub=c.inverter.price_rub), netting=house.netting)
         c.result = r.as_dict()
         c.result["payback_low"] = simple_payback(c.capex_low_rub, r.effect_rub, P.OPEX_RUB_PER_YEAR)
         c.result["payback_high"] = simple_payback(c.capex_high_rub, r.effect_rub, P.OPEX_RUB_PER_YEAR)
     else:
-        e = annual_effect_monthly(c.months, house.plan)
+        e = (annual_effect_monthly_net if house.netting else annual_effect_monthly)(c.months, house.plan)
         c.result = {"effect_rub": e.effect_rub,
                     "simple_payback": simple_payback(c.capex_rub, e.effect_rub, P.OPEX_RUB_PER_YEAR)}
 

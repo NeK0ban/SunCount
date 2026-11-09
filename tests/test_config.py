@@ -179,9 +179,22 @@ def test_economics_same_as_api():
     """Экономика варианта — та же модель src/econ: результат совпадает с api.evaluate на его помесячных записях."""
     c = configure(house())[0]
     r = evaluate(c.months, CITY_SINGLE, c.kwp, capex_rub=c.capex_rub,
-                 scenario=Scenario(inverter_cost_rub=c.inverter.price_rub))
+                 scenario=Scenario(inverter_cost_rub=c.inverter.price_rub), netting=True)
     for k in ("simple_payback", "disc_payback", "npv_rub", "effect_rub", "self_share"):
         assert c.result[k] == pytest.approx(getattr(r, k))
+
+
+def test_netting_is_default():
+    """Расчёты — с помесячным зачётом, как в договоре ТНС (п. 5.2): на одноставочном тарифе отданная днём энергия
+    сначала гасит покупку того же месяца по тарифу (8,31 ₽), а не продаётся по цене выкупа (≈ 4,65 ₽), поэтому
+    эффект с зачётом больше, а доля дохода от продажи излишков меньше."""
+    assert House.__dataclass_fields__["netting"].default is True
+    p = catalog.panels()[0].panel_id
+    net = configure(house(), panel_ids=[p], top=1)[0]
+    raw = configure(house(netting=False), panel_ids=[p], top=1)[0]
+    assert net.n_panels == raw.n_panels
+    assert net.result["effect_rub"] > raw.result["effect_rub"]
+    assert net.result["export_share"] < raw.result["export_share"]
 
 
 def test_monthly_balance():

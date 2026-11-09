@@ -168,7 +168,7 @@ with right:
         f"- **Выработка:** {format_rub(best['gen_kwh']).replace('₽', 'кВт·ч')} в год"
         f" (потребление дома {format_rub(best['load_kwh']).replace('₽', 'кВт·ч')})\n"
         f"- **Сразу расходуется в доме:** {format_percent(best['self_share'])} выработки, "
-        f"остальное продаётся в сеть\n"
+        f"остальное уходит в сеть: за месяц зачитывается в счёт покупки из сети, остаток продаётся\n"
         f"- **Дисконтированный срок:** {format_years(best['disc_payback'])}; "
         f"выгода за 25 лет {format_rub(best['npv_rub'])}")
 

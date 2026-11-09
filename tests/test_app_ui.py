@@ -65,6 +65,9 @@ def test_custom_mode(app):
 
 
 def test_three_phase_big_roof(app):
+    # тариф день/ночь: здесь при цели «быстрее окупить» выгодна крупная станция. На городском одноставочном с
+    # помесячным зачётом быстрее окупается малая — излишки сверх месячной покупки продаются почти вдвое дешевле тарифа
+    next(s for s in app.selectbox if s.label == "Тариф").set_value("city_zones")
     radio(app, "Ввод в дом").set_value(3)
     radio(app, "Что важнее").set_value("payback")
     next(n for n in app.number_input if n.label.startswith("Полезная площадь")).set_value(80)

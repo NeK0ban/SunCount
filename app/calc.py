@@ -81,7 +81,7 @@ def own_load(monthly_kwh, presence: str, appliances, city: str) -> tuple:
 def run_configurator(city: str, tariff_key: str, load: tuple, appliances=(), roof_area_m2: float = 40,
                      tilt: float = 30, azimuth: float = 180, shading: str = "none", phases: int = 1,
                      allowed_kw: float = 15, budget_rub: float | None = None, goal: str = "own",
-                     profile_id: str = "custom") -> dict:
+                     profile_id: str = "custom", netting: bool = True) -> dict:
     """Подбор для веб-сервиса. Возвращает словарь из простых типов (для кеша Streamlit):
     {"configs": [вариант, ...], "constraint": текст} — первый вариант рекомендуемый; configs пуст, если подходящих нет.
     Вариант: panel, panel_id, n_panels, kwp, area_m2, inverter, strings, capex/границы, bom, gen_kwh,
@@ -91,7 +91,8 @@ def run_configurator(city: str, tariff_key: str, load: tuple, appliances=(), roo
         raise ValueError(f"Цель подбора: одна из {sorted(GOALS)}")
     house = House(city=city, plan=get_plan(tariff_key, appliances), load_8760=tuple(load),
                   roof_area_m2=roof_area_m2, tilt=tilt, azimuth=azimuth, shading=shading, phases=phases,
-                  allowed_kw=allowed_kw, budget_rub=budget_rub, goal=goal, profile_id=profile_id)
+                  allowed_kw=allowed_kw, budget_rub=budget_rub, goal=goal, profile_id=profile_id,
+                  netting=netting)
     best = configure(house)
     out = []
     for c in best:
