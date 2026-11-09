@@ -56,6 +56,7 @@ docs/
 - [market.md](grant/market.md) — оценка рынка: частные дома и домашние СЭС в крае и Адыгее (T2.7).
 - [competitors.md](grant/competitors.md) — обзор калькуляторов конкурентов (T2.6, Р2).
 - [monetization.md](grant/monetization.md) — кому продавать и сколько стоит разработка (Р5).
+- [customers.md](grant/customers.md) — кому продать: конкретные компании по сегментам (установщики, магазины оборудования, энергокомпании) и порядок работы с ними.
 - [literature.md](grant/literature.md) — обзор литературы.
 - [patents.md](grant/patents.md) — патентный поиск.
 
