@@ -45,6 +45,7 @@ python scripts/validate_yield.py       # энергорасчёт против P
 python scripts/configurator_examples.py  # подбор на портретах команды 1 → results/config_examples.csv
 python scripts/make_scheme.py          # схема решения → reports/scheme/SunCount_scheme.pptx и .png (PNG — через PowerPoint)
 python scripts/make_interim_talk.py    # промежуточный доклад → reports/SunCount_interim_talk.pptx
+python scripts/make_ip_talk.py         # презентация к экспертной трубе по ИС → reports/ip_truba/
 python -m pytest -q                     # автотесты (tests/)
 python -m streamlit run app/streamlit_app.py   # веб-сервис SunCount → http://localhost:8501
 ```
