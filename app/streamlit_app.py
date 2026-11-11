@@ -11,13 +11,14 @@ if str(ROOT) not in sys.path:
 import pandas as pd  # noqa: E402
 import streamlit as st  # noqa: E402
 
-from app.calc import (data_versions, own_load, portrait_load, reduced_by_appliances,  # noqa: E402
+from app.calc import (data_versions, own_load, phase_limits, portrait_load, reduced_by_appliances,  # noqa: E402
                       run_configurator)
 from app.texts import (ALLOWED_HELP, APPLIANCES, APPLIANCES_NOTE, CITIES, GOAL_HELP, GOAL_LABELS,  # noqa: E402
                        HEATING_HELP, HEATING_MONTHLY_HINT, HOW_IT_WORKS, INTRO, LIFETIME_YEARS, METHOD_URL, MODES,
-                       MONTHS_SHORT, NB, PHASES, PORTRAIT_NOTE, PORTRAITS, PRESENCE, ROOF_HELP, ROOF_SIDES, SHADING,
+                       MONTHS_SHORT, NB, PHASES, PORTRAIT_NOTE, PORTRAITS, PRESENCE, ROOF_HELP,
+                       ROOF_SIDES, ROOF_SIDES_HELP, SHADING, SHADING_HELP,
                        TARIFF_NOTE, TARIFFS, footnote, format_percent, format_rub, format_years, format_years_range,
-                       reduced_tariff_note, strings_text, verdict)
+                       phases_help, reduced_tariff_note, strings_text, verdict)
 
 HIGHLIGHT = "background-color: #e8f1fa"   # строка рекомендуемого варианта в таблице
 
@@ -49,17 +50,25 @@ st.set_page_config(page_title="SunCount — подбор солнечной эл
 # ---------- Боковая панель: ввод ----------
 with st.sidebar:
     st.header("Ваш дом")
+
+    # Город и тариф — самые важные параметры, сразу вверху
     city_key = st.selectbox("Населённый пункт", options=list(CITIES), format_func=lambda k: CITIES[k])
     tariff_key = st.selectbox("Тариф", options=list(TARIFFS), format_func=lambda k: TARIFFS[k]["label"])
     st.caption(TARIFF_NOTE)
 
+    st.divider()
+
+    # Потребление
     st.subheader("Потребление")
     mode = st.radio("Данные о потреблении", options=list(MODES), format_func=lambda k: MODES[k], horizontal=True,
                     help="«Готовый портрет» — типичная семья по расчётам команды 1; «Свои данные» — потребление "
                          "из ваших квитанций.")
+
     appliances: set[str] = set()
+
     if mode == "portrait":
-        profile_id = st.selectbox("Портрет домохозяйства", options=list(PORTRAITS), format_func=lambda k: PORTRAITS[k])
+        profile_id = st.selectbox("Портрет домохозяйства", options=list(PORTRAITS),
+                                  format_func=lambda k: PORTRAITS[k])
         if profile_id == "el_heating":
             appliances = {"el_heating"}
         st.caption(PORTRAIT_NOTE)
@@ -67,43 +76,70 @@ with st.sidebar:
         profile_id = "custom"
         by_month = st.radio("Как ввести потребление", options=["avg", "months"], horizontal=True,
                             format_func=lambda k: {"avg": "одно среднее значение", "months": "по месяцам"}[k])
+
         if by_month == "avg":
             monthly = st.number_input("Среднее потребление в месяц, кВт·ч", min_value=50, max_value=5000, value=500,
                                       step=10, help="От 50 до 5 000 кВт·ч — среднее за год по квитанциям.")
         else:
             with st.expander("Потребление по месяцам, кВт·ч", expanded=True):
                 st.caption("Все 12 месяцев обязательны — по квитанциям за последний год.")
-                cols = st.columns(3)
+                # Улучшение для телефона: компактные колонки
+                cols = st.columns(3, gap="small")
                 values = []
                 for i, name in enumerate(MONTHS_SHORT):
                     with cols[i % 3]:
                         values.append(st.number_input(name, min_value=1, max_value=20000, value=500, step=10,
                                                       key=f"month_{i + 1}"))
             monthly = tuple(values)
-        presence = st.radio("Когда в доме кто-то есть", options=list(PRESENCE), format_func=lambda k: PRESENCE[k])
+
+        presence = st.radio("Когда в доме кто-то есть", options=list(PRESENCE),
+                            format_func=lambda k: PRESENCE[k])
+
         appliances = set(st.multiselect("Основные приборы", options=list(APPLIANCES),
                                         format_func=lambda k: APPLIANCES[k], help=HEATING_HELP))
+
         if appliances:
             st.caption(APPLIANCES_NOTE)
+
         if "el_heating" in appliances and by_month == "avg":
             st.warning(HEATING_MONTHLY_HINT)
 
+    st.divider()
+
+    # Крыша
     st.subheader("Крыша")
     roof = st.number_input("Полезная площадь под панели, м²", min_value=3, max_value=500, value=40, step=1,
                            help=ROOF_HELP)
-    side = st.selectbox("Куда смотрит скат", options=list(ROOF_SIDES), format_func=lambda k: ROOF_SIDES[k])
+
+    side = st.selectbox("Куда смотрит скат", options=list(ROOF_SIDES),
+                        format_func=lambda k: ROOF_SIDES[k],
+                        help=ROOF_SIDES_HELP)
+
     tilt = st.slider("Наклон крыши, градусы", min_value=0, max_value=60, value=30, step=5,
                      help="0 — плоская крыша, обычная скатная — 25–35°.")
-    shading = st.radio("Тень на крыше днём", options=list(SHADING), format_func=lambda k: SHADING[k])
 
+    shading = st.radio("Тень на крыше днём", options=list(SHADING),
+                       format_func=lambda k: SHADING[k],
+                       help=SHADING_HELP)
+
+    st.divider()
+
+    # Подключение к сети
     st.subheader("Подключение к сети")
-    phases = st.radio("Ввод в дом", options=list(PHASES), format_func=lambda k: PHASES[k], horizontal=True,
-                      help="Трёхфазный инвертор можно поставить только при трёхфазном вводе.")
+    phases = st.radio("Ввод в дом", options=list(PHASES),
+                      format_func=lambda k: PHASES[k], horizontal=True,
+                      help=phases_help(phase_limits()))
+
     allowed_kw = st.number_input("Мощность по договору с сетью, кВт", min_value=1.0, max_value=150.0, value=15.0,
                                  step=0.5, help=ALLOWED_HELP)
 
+    st.divider()
+
+    # Цель
     st.subheader("Цель")
-    goal = st.radio("Что важнее", options=list(GOAL_LABELS), format_func=lambda k: GOAL_LABELS[k], help=GOAL_HELP)
+    goal = st.radio("Что важнее", options=list(GOAL_LABELS),
+                    format_func=lambda k: GOAL_LABELS[k], help=GOAL_HELP)
+
     budget = None
     if st.checkbox("Ограничить бюджет"):
         budget = float(st.number_input("Бюджет на станцию «под ключ», ₽", min_value=50_000, max_value=10_000_000,
@@ -124,19 +160,23 @@ else:
 
 res = configure_cached(city_key, tariff_key, load, tuple(sorted(appliances)), float(roof), float(tilt), float(side),
                        shading, int(phases), float(allowed_kw), budget, goal, profile_id)
+
 configs = res["configs"]
 if not configs:
     st.warning("Ни одна станция из каталога не подходит под эти условия: увеличьте бюджет или площадь крыши, "
                "проверьте мощность по договору с сетью.")
     st.stop()
-best = configs[0]
 
+best = configs[0]
 st.markdown(verdict(best, goal))
+
 if reduced_by_appliances(tariff_key, appliances):
     st.info(reduced_tariff_note(appliances))
 
+# 4 карточки — на телефоне будут в 2 колонки
 c1, c2 = st.columns(2)
 c3, c4 = st.columns(2)
+
 c1.metric("Мощность панелей", kw(best["kwp"]),
           help=f"{best['n_panels']} × {best['panel_w']:.0f} Вт; инвертор {best['inverter_kw']:g} кВт", border=True)
 c2.metric("Цена «под ключ»", format_rub(best["capex_rub"]),
@@ -145,33 +185,43 @@ c3.metric("Срок окупаемости", format_years(best["simple_payback"]
           help="Цена станции / годовой эффект первого года", border=True)
 c4.metric("Эффект в год", format_rub(best["effect_rub"]),
           help="Экономия на счёте за электричество + доход от продажи излишков", border=True)
+
 if best["simple_payback"] > LIFETIME_YEARS:
     st.warning(f"При таком потреблении станция не окупается за срок службы ({LIFETIME_YEARS} лет).")
+
 st.caption(f"Размер станции ограничивает: {res['constraint']}.")
 
+# Смета и устройство станции — на телефоне будут друг под другом
 left, right = st.columns([3, 2])
+
 with left:
     st.subheader("Смета")
     bom = pd.DataFrame([{"Статья": r[0], "Модель / пояснение": r[1],
                          "Кол-во": f"{r[2]:g}", "Цена": format_rub(r[3]), "Сумма": format_rub(r[4])}
                         for r in best["bom"]])
     st.dataframe(bom, width="stretch", hide_index=True)
-    st.caption(f"Итого {format_rub(best['capex_rub'])}; при монтаже 15–25 % от оборудования — "
+
+    # Улучшение: итог жирным шрифтом (отдельно от caption)
+    st.markdown(f"**Итого: {format_rub(best['capex_rub'])}**")
+    st.caption(f"При монтаже 15–25 % от оборудования — "
                f"{format_rub(best['capex_low_rub'])} – {format_rub(best['capex_high_rub'])}. "
                "Цены — в каталоге data/equipment/ со ссылками на продавцов.")
+
 with right:
     st.subheader("Как устроена станция")
     st.markdown(
         f"- **Панели:** {best['n_panels']} × {best['panel']}, займут {str(round(best['area_m2'], 1)).replace('.', ',')} м²\n"
         f"- **Соединение:** {strings_text(best)}\n"
         f"- **Инвертор:** {best['inverter']}, {best['phases']}-фазный\n"
-        f"- **Выработка:** {format_rub(best['gen_kwh']).replace('₽', 'кВт·ч')} в год"
-        f" (потребление дома {format_rub(best['load_kwh']).replace('₽', 'кВт·ч')})\n"
-        f"- **Сразу расходуется в доме:** {format_percent(best['self_share'])} выработки, "
+        f"- **Выработка:** {format_rub(best['gen_kwh']).replace('₽', 'кВт·ч')} в год "
+        f"(потребление дома {format_rub(best['load_kwh']).replace('₽', 'кВт·ч')})\n"
+        f"- **Самопотребление:** {format_percent(best['self_share'])} выработки расходуется в доме, "
         f"остальное уходит в сеть: за месяц зачитывается в счёт покупки из сети, остаток продаётся\n"
         f"- **Дисконтированный срок:** {format_years(best['disc_payback'])}; "
-        f"выгода за 25 лет {format_rub(best['npv_rub'])}")
+        f"выгода за 25 лет {format_rub(best['npv_rub'])}"
+    )
 
+# Другие варианты
 st.subheader("Другие варианты")
 rows = [{
     "Панели": f"{c['n_panels']} × {c['panel']}", "Мощность": kw(c["kwp"]), "Инвертор": c["inverter"],
@@ -179,6 +229,7 @@ rows = [{
     "При монтаже 15–25 %": format_years_range(c["payback_low"], c["payback_high"]),
     "Дисконт. срок": format_years(c["disc_payback"]), "Выгода за 25 лет": format_rub(c["npv_rub"]),
 } for c in configs]
+
 table = pd.DataFrame(rows)
 st.dataframe(table.style.apply(lambda row: [HIGHLIGHT if row.name == 0 else "" for _ in row], axis=1),
              width="stretch", hide_index=True)

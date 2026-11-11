@@ -129,6 +129,13 @@ def average_day(config: dict, city: str, load: tuple, month: int, tilt: float = 
     return {k: [float(v) for v in day[k]] for k in ("gen", "load", "self")}
 
 @lru_cache(maxsize=1)
+@lru_cache(maxsize=1)
+def phase_limits() -> dict:
+    """Самые мощные инверторы каталога по числу фаз: {фазы: (кВт на выходе, кВт панелей по паспорту)}."""
+    inv = pd.read_csv(ROOT / "data" / "equipment" / "inverters.csv", encoding="utf-8-sig")
+    return {int(ph): (float(g.ac_kw.max()), float(g.max_pv_kw.max())) for ph, g in inv.groupby("phases")}
+
+
 def data_versions() -> dict:
     """Какие данные лежат в основе расчёта — для подписи под результатом (берётся из файлов, не вручную)."""
     plan = next(iter(TARIFFS.values()))["plan"]
