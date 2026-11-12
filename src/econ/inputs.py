@@ -111,9 +111,9 @@ def monthly_bill(plan: TariffPlan, month: int, day_kwh: float, night_kwh: float)
 def buyback_monthly(owner_category: str) -> dict[int, float]:
     """Цена выкупа по месяцам (1–12), ₽/кВт·ч, для владельца на тарифе 'flat' или 'zones'.
 
-    Уровень — среднее восстановленной цены категории за май–сентябрь 2026 (data/buyback_by_category.csv).
-    Сезонность — индекс средневзвешенной цены ТНС по календарным месяцам 2024–2026
-    (data/buyback_prices.csv), нормированный так, что среднее за май–сентябрь = 1.
+    Уровень — среднее восстановленной цены категории за месяцы из data/buyback_by_category.csv (с 12.11.2026 —
+    май–октябрь 2026). Сезонность — индекс средневзвешенной цены ТНС по календарным месяцам 2024–2026
+    (data/buyback_prices.csv), нормированный так, что его среднее за те же календарные месяцы = 1.
     Возвращает копию: изменения у вызывающего не портят кеш.
     """
     if owner_category not in ("flat", "zones"):
@@ -128,7 +128,8 @@ def _buyback_monthly(owner_category: str) -> dict[int, float]:
     avg = pd.read_csv(DATA / "buyback_prices.csv", encoding="utf-8-sig")
     avg["m"] = avg.month.str[5:7].astype(int)
     by_m = avg.groupby("m").price_rub_kwh.mean()
-    base = by_m.loc[[5, 6, 7, 8, 9]].mean()
+    months = sorted(set(cat.month.str[5:7].astype(int)))   # те же месяцы, по которым посчитан уровень
+    base = by_m.loc[months].mean()
     return {m: level * float(by_m.loc[m]) / base for m in range(1, 13)}
 
 

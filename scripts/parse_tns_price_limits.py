@@ -26,6 +26,9 @@ OUT = ROOT / "data" / "buyback_by_category.csv"
 PAGE = ("https://kuban.tns-e.ru/disclosure/raskrytie-informatsii-subektom-rynka-elektricheskoy-energii-moshchnosti/"
         "market-report-gp/predelnye-urovni-nereguliruemykh-tsen-na-elektroenergiyu-moshchnost-postavlyaemuyu-potrebitelyam-pok/")
 
+ACCESSED = "2026-10-13"
+ACCESSED_BY_FILE = {"2026-10.xls": "2026-11-12"}   # файлы, скачанные позже первой выгрузки
+
 
 def num(v):
     try:
@@ -83,6 +86,6 @@ with OUT.open("w", newline="", encoding="utf-8-sig") as fh:
     w.writerow(cols + ["vat_included", "status", "source_url", "accessed"])
     for r in rows:   # k1 — полностью: при 4 знаках «энергия + мощность × k1» не воспроизводит flat_rub_kwh
         w.writerow([round(r[c], 10 if c == "k1" else 4) if isinstance(r.get(c), float) else r.get(c, "") for c in cols]
-                   + ["no", "расчёт по открытым данным (оценка)", PAGE, "2026-10-13"])
+                   + ["no", "расчёт по открытым данным (оценка)", PAGE, ACCESSED_BY_FILE.get(r["month"] + ".xls", ACCESSED)])
         print({c: (round(r[c], 3) if isinstance(r.get(c), float) else r.get(c)) for c in cols[:6]})
 print("written", OUT)

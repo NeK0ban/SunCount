@@ -53,11 +53,11 @@ def test_own_capex():
 
 # ----------------------------------------------------------------- приёмка T1.4
 def test_control_point():
-    r = evaluate(stub(5), CITY_ZONES, 5)
-    assert r.effect_rub == pytest.approx(51_394, abs=1)
-    assert round(r.simple_payback, 1) == 5.7
+    r = evaluate(stub(5), CITY_ZONES, 5)   # цена выкупа — май–октябрь 2026 (октябрь внесён 12.11.2026)
+    assert r.effect_rub == pytest.approx(51_699, abs=1)
+    assert round(r.simple_payback, 1) == 5.6
     assert round(r.disc_payback, 1) == 6.4
-    assert r.npv_rub == pytest.approx(484_002, abs=1)
+    assert r.npv_rub == pytest.approx(488_325, abs=1)
     assert annual_from_monthly(stub(5)).gen_kwh == pytest.approx(6171.8, abs=0.1)
 
 
