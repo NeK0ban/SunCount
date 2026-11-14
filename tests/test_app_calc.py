@@ -4,8 +4,12 @@
 """
 import pytest
 
-from app.calc import average_day, get_plan, own_load, portrait_load, reduced_by_appliances, run_configurator
-from app.texts import PORTRAITS, TARIFFS
+import numpy as np
+
+from app.calc import (average_day, get_plan, own_load, portrait_load, reduced_by_appliances, run_configurator,
+                      shift_load_to_day, tips)
+from app.charts import day_figures
+from app.texts import PORTRAITS, TARIFFS, hint_no_payback
 
 
 @pytest.mark.parametrize("appliances, category, ranges", [
@@ -82,3 +86,57 @@ def test_average_day_matches_station_month():
     assert max(range(24), key=lambda h: july["gen"][h]) in (11, 12, 13)   # пик около полудня по местному времени
     with pytest.raises(ValueError):
         average_day(best, "krasnodar", load, 13)
+
+
+def test_shift_load_to_day_keeps_daily_sums():
+    """Сценарий подсказки T4.5: с 19–22 снято не больше 2 кВт·ч в сутки, столько же добавлено на 11–14,
+    суточное потребление не изменилось, отрицательных часов нет."""
+    load = own_load(500, "day_absent", (), "krasnodar")
+    a, b = np.asarray(load).reshape(365, 24), np.asarray(shift_load_to_day(load)).reshape(365, 24)
+    assert np.allclose(a.sum(axis=1), b.sum(axis=1))
+    moved = (a - b)[:, 19:23].sum(axis=1)
+    assert (moved <= 2 + 1e-9).all() and moved.mean() > 1.9
+    assert np.allclose((b - a)[:, 11:15].sum(axis=1), moved)
+    assert (b >= 0).all()
+
+
+def test_tips_tariff_and_no_shift_with_netting():
+    """Подсказки T4.5 на доме 500 кВт·ч/мес: тариф день/ночь — да (выигрыш ≥ 0,5 года, посчитан конфигуратором).
+    Перенос стирки на день при помесячном зачёте срок не меняет (19–22 и 11–14 — одна дневная зона),
+    поэтому этой подсказки нет."""
+    load = own_load(500, "day_absent", (), "krasnodar")
+    res = run_configurator("krasnodar", "city_single", load)
+    alt = run_configurator("krasnodar", "city_zones", load)["configs"][0]["simple_payback"]
+    out = tips(res, "krasnodar", "city_single", load)
+    assert 1 <= len(out) <= 3
+    assert out[0].startswith("Переход на тариф день/ночь")
+    gain = res["configs"][0]["simple_payback"] - alt
+    assert f"{gain:.1f}".replace(".", ",") in out[0]
+    assert not any(t.startswith("Перенесите") for t in out)
+    shifted = run_configurator("krasnodar", "city_single", shift_load_to_day(load))["configs"][0]
+    assert shifted["simple_payback"] == pytest.approx(res["configs"][0]["simple_payback"], abs=0.01)
+    zones = run_configurator("krasnodar", "city_zones", load)
+    assert tips(zones, "krasnodar", "city_zones", load) == []    # на день/ночь подсказывать о тарифе нечего
+
+
+def test_tips_no_payback():
+    """«Не окупается» — когда простой срок всех вариантов больше 25 лет, не только inf (как в verdict)."""
+    res = {"configs": [{"simple_payback": 31.0, "self_share": 80.0}, {"simple_payback": float("inf"),
+                                                                      "self_share": 80.0}]}
+    assert tips(res, "krasnodar", "city_zones", ()) == [hint_no_payback()]
+    res["configs"][0]["simple_payback"] = 20.0
+    assert tips(res, "krasnodar", "city_zones", ()) == []
+    assert tips({"configs": []}, "krasnodar", "city_single", ()) == []
+
+
+def test_day_figure_draws_all_hours():
+    """График T4.4: два рисунка с общей шкалой, у каждой линии 25 точек — последняя ступенька кончается в 24:00."""
+    load = portrait_load("day_absent", "krasnodar")
+    best = run_configurator("krasnodar", "city_single", load)["configs"][0]
+    figs = day_figures(average_day(best, "krasnodar", load, 7), average_day(best, "krasnodar", load, 1))
+    axes = [f.axes[0] for f in figs]
+    assert len(figs) == 2 and axes[0].get_ylim() == axes[1].get_ylim()
+    for ax in axes:
+        lines = [ln for ln in ax.get_lines() if len(ln.get_xdata()) > 2]
+        assert len(lines) == 2 and all(ln.get_xdata()[-1] == 24 for ln in lines)
+        assert ax.get_xlim() == (0, 24)

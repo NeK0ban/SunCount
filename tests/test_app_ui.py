@@ -35,6 +35,9 @@ def test_default(app):
     assert any("Рекомендуем" in m.value for m in app.markdown)
     assert not app.slider or all(s.label != "Доля самопотребления, %" for s in app.slider)   # ползунка больше нет
     assert len(app.dataframe) == 2   # смета и другие варианты
+    assert any("Потребление на фоне выработки" in h.value for h in app.subheader)   # график T4.4
+    assert any("Средние сутки месяца" in c.value for c in app.caption)
+    assert any("Тарифы с " in c.value and "ориентировочный" in c.value for c in app.caption)   # подпись о данных
 
 
 @pytest.mark.parametrize("pid", ["day_absent", "home_all_day", "ac", "el_heating"])
