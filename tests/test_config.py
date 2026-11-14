@@ -10,7 +10,7 @@ import pytest
 
 from src.config import catalog
 from src.config.configurator import (MICROGEN_LIMIT_KW, TIE_YEARS, House, bill_of_materials, candidates,
-                                     configure, hourly_ac, layout, string_limits)
+                                     binding_constraint, configure, hourly_ac, layout, string_limits)
 from src.config.pv_yield import panel_dc_w, specific_yield, system_loss
 from src.config.weather import design_min_temp, tmy
 from src.econ.api import evaluate
@@ -155,6 +155,25 @@ def test_own_needs_goal():
         assert best.gen_kwh <= sum(h.load_8760)
         free = configure(House(**{**h.__dict__, "goal": "payback"}))[0]   # без ограничения — не меньше
         assert free.kwp >= best.kwp
+
+
+def test_tiny_house_smallest_station_by_payback():
+    """Дом потребляет меньше, чем даёт самая маленькая станция (600 кВт·ч в год): выбор среди вариантов
+    с наименьшим числом панелей по сроку окупаемости, а не вариант с наименьшей выработкой — им оказывался
+    более дорогой инвертор (проверка 14.11.2026)."""
+    tiny = tuple(np.asarray(load()) * 600 / sum(load()))
+    h = house(load_8760=tiny)
+    res = configure(h)
+    best = res[0]
+    smallest = [c for c in candidates(h) if c.n_panels == best.n_panels]
+    assert best.n_panels == min(c.n_panels for c in candidates(h))
+    assert best.gen_kwh > sum(tiny)                       # даже самая маленькая станция больше дома
+    for c in smallest:                                    # никакой вариант того же размера не окупается быстрее
+        evaluate_quick = configure(House(**{**h.__dict__}), panel_ids=[c.panel.panel_id])
+        assert best.result["simple_payback"] <= evaluate_quick[0].result["simple_payback"] + TIE_YEARS
+    assert best.inverter.price_rub == min(c.inverter.price_rub for c in smallest)
+    assert all(c.n_panels == best.n_panels for c in res)
+    assert "даже самая маленькая станция" in binding_constraint(best, h)
 
 
 def test_bigger_house_bigger_station():

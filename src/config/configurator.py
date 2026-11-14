@@ -23,7 +23,9 @@
 Цель подбора:
 - "own" (по умолчанию) — станция для своих нужд: за год вырабатывает не больше, чем потребляет дом
   (объект микрогенерации используется для собственных нужд, в сеть отдаются излишки — docs/rules/01_normativka.md);
-  среди таких — с наименьшим простым сроком окупаемости;
+  среди таких — с наименьшим простым сроком окупаемости. Если даже самая маленькая станция каталога (обычно
+  2 панели — меньше не позволяет нижняя граница MPPT) вырабатывает больше, чем потребляет дом, выбор идёт среди
+  вариантов с наименьшим числом панелей по тому же сроку окупаемости;
 - "payback" — наименьший простой срок без ограничения по потреблению (часто — самая крупная допустимая станция:
   излишки продаются, а крупная станция дешевле за киловатт);
 - "npv" — наибольшая чистая приведённая выгода за 25 лет.
@@ -259,7 +261,14 @@ def configure(house: House, panel_ids=None, top: int = 5, full_for: int = 25) ->
     if house.goal == "own":
         annual = float(load.sum())
         own = [c for c in cands if c.gen_kwh <= annual]
-        cands = own or sorted(cands, key=lambda c: c.gen_kwh)[:1]   # дом меньше одной панели — самый малый вариант
+        if own:
+            cands = own
+        elif cands:
+            # дом потребляет меньше, чем даёт самая маленькая станция: берём все варианты с наименьшим числом
+            # панелей и выбираем среди них по сроку, как обычно. Раньше брался один вариант с наименьшей
+            # выработкой — им оказывался более дорогой и менее эффективный инвертор (проверка 14.11.2026)
+            n_min = min(c.n_panels for c in cands)
+            cands = [c for c in cands if c.n_panels == n_min]
     cands.sort(key=lambda c: (c.result["simple_payback"], c.capex_rub))
     if house.goal == "npv":
         shortlist = cands   # NPV не монотонен по сроку — считаем всё
@@ -292,6 +301,15 @@ def _num(value: float) -> str:
     return f"{value:g}".replace(".", ",")
 
 
+def _panels_word(n: int) -> str:
+    """1 панель, 2–4 панели, 5–20 панелей."""
+    if n % 10 == 1 and n % 100 != 11:
+        return "панель"
+    if n % 10 in (2, 3, 4) and n % 100 not in (12, 13, 14):
+        return "панели"
+    return "панелей"
+
+
 def binding_constraint(best: Config, house: House) -> str:
     """Почему рекомендуемая станция не больше — одна фраза для пользователя."""
     n_roof = int(house.roof_area_m2 // best.panel.area_m2)
@@ -311,6 +329,10 @@ def binding_constraint(best: Config, house: House) -> str:
         return f"бюджет {_num(house.budget_rub)} ₽"
     if house.goal == "own":
         annual = float(np.sum(house.load_8760))
+        if best.gen_kwh > annual:
+            return (f"потребление дома: даже самая маленькая станция из каталога — {best.n_panels} "
+                    f"{_panels_word(best.n_panels)} — вырабатывает за год больше ({_num(best.gen_kwh)} кВт·ч), чем дом "
+                    f"потребляет ({_num(annual)} кВт·ч); излишки покупает гарантирующий поставщик")
         nxt = min(bigger, key=lambda c: (c.n_panels, c.capex_rub))
         if hourly_ac(nxt.panel, nxt.n_panels, nxt.inverter, nxt.strings, house)[0].sum() > annual:
             return (f"потребление дома: станция для своих нужд вырабатывает за год не больше, чем дом потребляет "
