@@ -3,13 +3,20 @@ mounting,per_panel,3248.0,крепёж на скатную крышу парал
 dc_cable,per_m,160.88,солнечный кабель PV-1F 1×4 мм²,data/equipment/offers.csv (ЭТМ),цена — из offers.csv
 dc_cable_m_per_string,m,40.0,2 полюса × ~20 м от крыши до инвертора,scripts/estimate_capex.py (допущение),допущение
 mc4,per_pair,115.28,пара разъёмов MC4,data/equipment/offers.csv (ЭТМ),пары на цепочку: 2 + 2 запасных на систему
-dc_spd_600,per_mppt,9117.6,УЗИП постоянного тока 600 В на вход MPPT,data/equipment/offers.csv (ЭТМ),для инверторов с входом до 600 В
-dc_spd_1000,per_mppt,10031.9,УЗИП постоянного тока 1000 В на вход MPPT,data/equipment/offers.csv (ЭТМ),для инверторов с входом выше 600 В
+dc_spd_600,per_mppt,9597.18,УЗИП постоянного тока 600 В на вход MPPT,data/equipment/offers.csv (ЭТМ),для инверторов с входом до 600 В
+dc_spd_1000,per_mppt,10559.57,УЗИП постоянного тока 1000 В на вход MPPT,data/equipment/offers.csv (ЭТМ),для инверторов с входом выше 600 В
 ac_breaker_1ph,per_system,1145.89,автоматический выключатель 2P C32,data/equipment/offers.csv (ЭТМ),
 ac_breaker_3ph,per_system,2913.97,автоматический выключатель 4P C32,data/equipment/offers.csv (ЭТМ),
-ac_spd_1ph,per_system,2363.37,УЗИП переменного тока 1P+N тип 2,data/equipment/offers.csv (ЭТМ),
-ac_spd_3ph,per_system,4726.52,УЗИП переменного тока 3P+N тип 2,data/equipment/offers.csv (ЭТМ),
+ac_spd_1ph,per_system,2527.49,УЗИП переменного тока 1P+N тип 2,data/equipment/offers.csv (ЭТМ),
+ac_spd_3ph,per_system,5054.74,УЗИП переменного тока 3P+N тип 2,data/equipment/offers.csv (ЭТМ),
 ac_box,per_system,1125.39,бокс навесной на 8 модулей IP65,data/equipment/offers.csv (ЭТМ),
+ac_cable_1ph,per_m,269.81,"кабель ВВГнг(А)-LS 3×4 от инвертора до щита, однофазный ввод",data/equipment/offers.csv (ЭТМ),сечение — под автомат C32; цена из offers.csv
+ac_cable_3ph,per_m,417.89,"кабель ВВГнг(А)-LS 5×4 от инвертора до щита, трёхфазный ввод",data/equipment/offers.csv (ЭТМ),цена из offers.csv
+ac_cable_m,m,10.0,длина кабеля от инвертора до щита,допущение,"инвертор обычно ставят рядом с вводным щитом; КП Экопроект-Энерго 20.10.2026: кабель переменного тока, щиток и кабель-канал — расходники сверх монтажа"
+conduit,per_m,48.58,гофротруба ПНД d20 для кабелей на фасаде и в помещении,data/equipment/offers.csv (ЭТМ),цена из offers.csv
+conduit_m_per_string,m,20.0,гофротруба на цепочку: от крыши до инвертора,допущение,"та же длина, что у пути солнечного кабеля (dc_cable_m_per_string 40 м = 2 полюса × 20 м); плюс труба на кабель переменного тока длиной ac_cable_m"
+ground_wire,per_m,128.97,провод ПуГВ 1×6 для заземления рам панелей и корпуса инвертора,data/equipment/offers.csv (ЭТМ),цена из offers.csv
+ground_wire_m,m,20.0,длина провода заземления от массива панелей до шины заземления,допущение,рамы панелей и корпус инвертора заземляются (IEC 62548)
 delivery,per_system,5000.0,доставка,scripts/estimate_capex.py (допущение),допущение: у продавцов доставка считается отдельно
 meter,per_system,0.0,прибор учёта ставит сетевая организация,522-ФЗ: приборы учёта у граждан с 01.07.2020 ставит сетевая организация (scripts/estimate_capex.py),ставка С8 не найдена — если счётчик меняют за счёт заявителя
 labour_share,share_of_equipment,0.2,"монтаж и пусконаладка 15–25 % от стоимости комплекта, середина",data/kp_responses.csv (Экопроект-Энерго 20.10.2026),границы 0.15 и 0.25 — диапазон цены

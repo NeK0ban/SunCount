@@ -157,6 +157,12 @@ def bill_of_materials(panel: Panel, n: int, inv: Inverter, strings: tuple) -> tu
         ("УЗИП переменного тока", "3P+N, тип 2" if three else "1P+N, тип 2", 1,
          b["ac_spd_3ph"] if three else b["ac_spd_1ph"]),
         ("Бокс для защиты", "навесной, 8 модулей, IP65", 1, b["ac_box"]),
+        # расходники, которые установщик считает сверх монтажа (КП Экопроект-Энерго 20.10.2026); с 14.11.2026
+        ("Кабель переменного тока", f"ВВГнг(А)-LS {'5×4' if three else '3×4'}, инвертор — щит",
+         b["ac_cable_m"], b["ac_cable_3ph"] if three else b["ac_cable_1ph"]),
+        ("Гофротруба ПНД d20", f"{k} цеп. × {b['conduit_m_per_string']:.0f} м + {b['ac_cable_m']:.0f} м",
+         k * b["conduit_m_per_string"] + b["ac_cable_m"], b["conduit"]),
+        ("Провод заземления", "ПуГВ 1×6, рамы панелей и инвертор", b["ground_wire_m"], b["ground_wire"]),
         ("Доставка", "допущение", 1, b["delivery"]),
     ]
     rows = [(name, model, qty, price, qty * price) for name, model, qty, price in items]
