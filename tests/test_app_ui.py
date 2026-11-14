@@ -84,4 +84,4 @@ def test_budget_too_small(app):
     run(app)
     next(n for n in app.number_input if n.label.startswith("Бюджет")).set_value(60_000)
     run(app)
-    assert any("Ни одна станция" in w.value for w in app.warning)
+    assert any("Ни одна станция" in w.value and "Бюджет" in w.value and "138" in w.value for w in app.warning)

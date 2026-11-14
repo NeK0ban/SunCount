@@ -14,12 +14,12 @@ import pandas as pd  # noqa: E402
 import streamlit as st  # noqa: E402
 
 from app.calc import (average_day, data_versions, own_load, phase_limits, portrait_load,  # noqa: E402
-                      reduced_by_appliances, run_configurator, tips)
+                      reduced_by_appliances, run_configurator, tips, why_nothing_fits)
 from app.texts import (ALLOWED_HELP, APPLIANCES, APPLIANCES_NOTE, CHART_NOTE, CITIES, GOAL_HELP,  # noqa: E402
                        GOAL_LABELS, HEATING_HELP, HEATING_MONTHLY_HINT, HOW_IT_WORKS, INTRO, METHOD_URL, MODES,
                        MONTHS_SHORT, NB, PHASES, PORTRAIT_NOTE, PORTRAITS, PRESENCE, ROOF_HELP, ROOF_SIDES,
                        ROOF_SIDES_HELP, SHADING, SHADING_HELP, TARIFF_NOTE, TARIFFS, footnote, format_percent,
-                       format_rub, format_years, format_years_range, hint_no_payback, phases_help,
+                       format_rub, format_years, format_years_range, hint_no_payback, nothing_fits, phases_help,
                        reduced_tariff_note, strings_text, verdict)
 
 HIGHLIGHT = "background-color: #e8f1fa"   # строка рекомендуемого варианта в таблице
@@ -167,8 +167,9 @@ res = configure_cached(city_key, tariff_key, load, tuple(sorted(appliances)), fl
                        shading, int(phases), float(allowed_kw), budget, goal, profile_id)
 configs = res["configs"]
 if not configs:
-    st.warning("Ни одна станция из каталога не подходит под эти условия: увеличьте бюджет или площадь крыши, "
-               "проверьте мощность по договору с сетью.")
+    st.warning(nothing_fits(why_nothing_fits(city_key, tariff_key, load, tuple(sorted(appliances)), float(roof),
+                                             float(tilt), float(side), shading, int(phases),
+                                             float(allowed_kw), budget)))
     st.stop()
 
 best = configs[0]

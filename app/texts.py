@@ -210,6 +210,39 @@ ALLOWED_HELP = (
 )
 
 
+# Когда ни одна станция не подходит — причины по каждому ограничению (app/calc.py: why_nothing_fits)
+NOTHING_FITS = "Ни одна станция из каталога не подходит под эти условия."
+NOTHING_FITS_GENERIC = ("Ни одна станция из каталога не подходит под эти условия: проверьте площадь крыши, мощность по "
+                        "договору с сетью и бюджет.")
+
+
+def why_contract(allowed_kw: float, smallest_kw: float, phases: int) -> str:
+    return (f"**Мощность по договору с сетью.** По правилам микрогенерации инвертор не может быть мощнее договора: "
+            f"указано {_kw(allowed_kw)}, а самый маленький инвертор в каталоге для "
+            f"{'однофазного' if phases == 1 else 'трёхфазного'} ввода — {_kw(smallest_kw)}. Инверторов "
+            f"меньше {_kw(smallest_kw)} в каталоге пока нет.")
+
+
+def why_roof(roof_m2: float, n_panels: int, area_m2: float) -> str:
+    return (f"**Площадь крыши.** Самая маленькая станция — {n_panels}{NB}{panels_word(n_panels)} (меньше нельзя: "
+            f"инвертору не хватит напряжения) — займёт {str(round(area_m2, 1)).replace('.', ',')}{NB}м², "
+            f"а указано {str(round(roof_m2, 1)).replace('.', ',').removesuffix(',0')}{NB}м².")
+
+
+def why_budget(budget_rub: float, cheapest_rub: float) -> str:
+    return (f"**Бюджет.** Самая дешёвая станция, которая подходит под крышу и договор с сетью, стоит "
+            f"{format_rub(cheapest_rub)} «под ключ», а бюджет — {format_rub(budget_rub)}. Большую часть цены "
+            f"маленькой станции составляют инвертор, защита, монтаж и подключение к сети — они почти не зависят "
+            f"от числа панелей.")
+
+
+def nothing_fits(reasons: list[str]) -> str:
+    """Текст предупреждения: общая фраза и причины списком."""
+    if not reasons:
+        return NOTHING_FITS_GENERIC
+    return NOTHING_FITS + "\n\n" + "\n".join(f"- {r}" for r in reasons)
+
+
 def _kw(value: float) -> str:
     return f"{value:.2f}".rstrip("0").rstrip(".").replace(".", ",") + NB + "кВт"
 

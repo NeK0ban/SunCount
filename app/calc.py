@@ -19,11 +19,14 @@ import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
 from src.config.catalog import inverter as catalog_inverter, panel as catalog_panel  # noqa: E402
-from src.config.configurator import GOALS, House, binding_constraint, configure, hourly_ac  # noqa: E402
+from src.config.catalog import inverters as catalog_inverters, panels as catalog_panels  # noqa: E402
+from src.config.configurator import (GOALS, MICROGEN_LIMIT_KW, House, binding_constraint, candidates,  # noqa: E402
+                                     configure, hourly_ac)
 from src.config.weather import local_calendar  # noqa: E402
 from src.econ.inputs import TariffPlan  # noqa: E402
 from src.energy.api import build_profile  # noqa: E402
-from app.texts import TARIFFS, hint_no_payback, hint_shift, hint_tariff  # noqa: E402
+from app.texts import (TARIFFS, hint_no_payback, hint_shift, hint_tariff, why_budget, why_contract,  # noqa: E402
+                       why_roof)
 from src.econ.params import LIFETIME_YEARS  # noqa: E402
 
 MONTHS_GEN = ["январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь",
@@ -115,6 +118,41 @@ def run_configurator(city: str, tariff_key: str, load: tuple, appliances=(), roo
             "load_kwh": float(sum(load)), **c.result,
         })
     return {"configs": out, "constraint": binding_constraint(best[0], house) if best else ""}
+
+
+def why_nothing_fits(city: str, tariff_key: str, load: tuple, appliances=(), roof_area_m2: float = 40,
+                     tilt: float = 30, azimuth: float = 180, shading: str = "none", phases: int = 1,
+                     allowed_kw: float = 15, budget_rub: float | None = None) -> list[str]:
+    """Почему ни одна станция каталога не подходит — по каждому ограничению отдельно (пусто — причина не найдена).
+
+    Каждое ограничение проверяется при снятых остальных: договор с сетью — по самому маленькому инвертору
+    каталога для этого ввода; крыша — по самой маленькой станции, которая проходит по договору (меньше
+    2 панелей не бывает: не хватает напряжения для инвертора); бюджет — по самой дешёвой станции, которая
+    помещается на крышу и проходит по договору."""
+    reasons = []
+    invs = [i for i in catalog_inverters() if i.phases <= phases]
+    limit = min(allowed_kw, MICROGEN_LIMIT_KW)
+    if not any(i.ac_kw <= limit for i in invs):
+        reasons.append(why_contract(allowed_kw, min(i.ac_kw for i in invs), phases))
+        limit = min(i.ac_kw for i in invs)          # дальше считаем, будто договор позволяет самый маленький
+    # крыша, достаточная для любой станции каталога: самая мощная по паспорту инвертора + запас на одну панель
+    big_roof = max(i.max_pv_kw for i in invs) * 1000 / min(p.pmax_w for p in catalog_panels()) + 1
+    big_roof *= max(p.area_m2 for p in catalog_panels())
+
+    def house(roof, budget):
+        return House(city=city, plan=get_plan(tariff_key, appliances), load_8760=tuple(load), roof_area_m2=roof,
+                     tilt=tilt, azimuth=azimuth, shading=shading, phases=phases, allowed_kw=limit,
+                     budget_rub=budget)
+
+    all_roofs = candidates(house(max(roof_area_m2, big_roof), None))
+    if all_roofs and roof_area_m2 < min(c.area_m2 for c in all_roofs):
+        smallest = min(all_roofs, key=lambda c: c.area_m2)
+        reasons.append(why_roof(roof_area_m2, smallest.n_panels, smallest.area_m2))
+    if budget_rub is not None:
+        fit = candidates(house(roof_area_m2, None)) or all_roofs
+        if fit and budget_rub < min(c.capex_rub for c in fit):
+            reasons.append(why_budget(budget_rub, min(c.capex_rub for c in fit)))
+    return reasons
 
 
 def average_day(config: dict, city: str, load: tuple, month: int, tilt: float = 30, azimuth: float = 180,

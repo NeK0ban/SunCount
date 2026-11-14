@@ -7,7 +7,7 @@ import pytest
 import numpy as np
 
 from app.calc import (average_day, get_plan, own_load, portrait_load, reduced_by_appliances, run_configurator,
-                      shift_load_to_day, tips)
+                      shift_load_to_day, tips, why_nothing_fits)
 from app.charts import day_figures
 from app.texts import PORTRAITS, TARIFFS, hint_no_payback
 
@@ -140,3 +140,29 @@ def test_day_figure_draws_all_hours():
         lines = [ln for ln in ax.get_lines() if len(ln.get_xdata()) > 2]
         assert len(lines) == 2 and all(ln.get_xdata()[-1] == 24 for ln in lines)
         assert ax.get_xlim() == (0, 24)
+
+
+@pytest.mark.parametrize("kw, expected", [
+    (dict(roof_area_m2=3), ["Площадь крыши"]),
+    (dict(allowed_kw=1), ["Мощность по договору с сетью"]),
+    (dict(allowed_kw=2.5, phases=3), ["Мощность по договору с сетью"]),
+    (dict(budget_rub=50_000), ["Бюджет"]),
+    (dict(roof_area_m2=3, budget_rub=50_000, allowed_kw=1), ["Мощность по договору с сетью", "Площадь крыши", "Бюджет"]),
+])
+def test_why_nothing_fits(kw, expected):
+    """Когда ни одна станция не подходит, сервис называет каждую причину отдельно, с числами из каталога."""
+    load = portrait_load("day_absent", "krasnodar")
+    assert run_configurator("krasnodar", "city_single", load, **kw)["configs"] == []
+    reasons = why_nothing_fits("krasnodar", "city_single", load, **kw)
+    assert [r.split(".**")[0].strip("*") for r in reasons] == expected
+
+
+def test_why_nothing_fits_numbers_match_catalog():
+    """Числа в причинах — те же, что у самой маленькой и самой дешёвой станции подбора."""
+    load = portrait_load("day_absent", "krasnodar")
+    cheapest = min(c["capex_rub"] for c in run_configurator("krasnodar", "city_single", load, roof_area_m2=6)["configs"])
+    budget = why_nothing_fits("krasnodar", "city_single", load, roof_area_m2=6, budget_rub=cheapest - 1)
+    assert len(budget) == 1 and f"{cheapest:,.0f}".replace(",", " ") in budget[0]
+    assert run_configurator("krasnodar", "city_single", load, roof_area_m2=6, budget_rub=cheapest)["configs"]
+    assert why_nothing_fits("krasnodar", "city_single", load) == []      # всё подходит — причин нет
+
